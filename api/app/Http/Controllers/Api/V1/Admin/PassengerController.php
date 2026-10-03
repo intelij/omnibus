@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\BookingPassenger;
+use App\Models\Booking;
 use App\Models\Passenger;
 use Illuminate\Http\Request;
 
@@ -11,7 +11,7 @@ class PassengerController extends Controller
 {
     public function index(Request $request)
     {
-        $this->authorize('viewAny', \App\Models\Booking::class);
+        $this->authorize('viewAny', Booking::class);
 
         $q = Passenger::query()
             ->when($request->q, fn ($query, $v) => $query->where(fn ($q2) => $q2

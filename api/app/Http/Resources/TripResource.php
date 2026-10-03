@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Trip;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Trip */
 class TripResource extends JsonResource
 {
     public function toArray(Request $request): array

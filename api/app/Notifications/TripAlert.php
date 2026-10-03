@@ -27,7 +27,7 @@ class TripAlert extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject("{$tenant->trading_name}: {$this->subject}")
             ->line($this->body)
-            ->line('Departure: ' . $this->trip->departure_at->setTimezone($tenant->timezone)->format('d M Y H:i'))
+            ->line('Departure: '.$this->trip->departure_at->setTimezone($tenant->timezone)->format('d M Y H:i'))
             ->line("Route: {$this->trip->route->origin} → {$this->trip->route->destination}");
     }
 

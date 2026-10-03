@@ -82,7 +82,7 @@ class PaymentController extends Controller
             $csv .= implode(',', [
                 $p->id, $p->booking?->booking_reference, $p->method, $p->amount,
                 $p->currency, $p->status, $p->provider_ref, $p->confirmed_at, $p->created_at,
-            ]) . "\n";
+            ])."\n";
         }
 
         return response($csv, 200, [

@@ -11,8 +11,11 @@ class Refund extends Model
     use BelongsToTenant;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_PROCESSED = 'processed';
+
     public const STATUS_FAILED = 'failed';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [

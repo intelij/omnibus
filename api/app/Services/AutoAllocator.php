@@ -51,7 +51,7 @@ class AutoAllocator
         };
 
         if ($preference === 'together' || $preference === 'any' || $preference === 'front') {
-            $grouped = $seats->groupBy(fn (TripSeat $s) => $s->deck . ':' . $s->row);
+            $grouped = $seats->groupBy(fn (TripSeat $s) => $s->deck.':'.$s->row);
             foreach ($grouped as $rowSeats) {
                 if ($rowSeats->count() >= $count) {
                     return $rowSeats->sortBy('col')->take($count)->pluck('id')->all();

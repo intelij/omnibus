@@ -14,7 +14,6 @@ use App\StateMachines\PaymentStateMachine;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PaymentService
@@ -39,7 +38,8 @@ class PaymentService
             throw new GatewayUnavailableException($method);
         }
 
-        return DB::transaction(function () use ($booking, $method, $gateway, $idempotencyKey) {
+        /** @var Payment $payment */
+        $payment = DB::transaction(function () use ($booking, $method, $gateway, $idempotencyKey) {
             $booking->refresh();
 
             if (! in_array($booking->status, [Booking::STATUS_HELD, Booking::STATUS_PENDING_PAYMENT], true)) {
@@ -92,6 +92,8 @@ class PaymentService
 
             return $payment->fresh();
         });
+
+        return $payment;
     }
 
     /**

@@ -88,7 +88,7 @@ class CardGateway implements PaymentGateway
         }
 
         return [
-            'event_id' => 'card:' . ($data['reference'] ?? '') . ':' . ($data['paynowreference'] ?? ''),
+            'event_id' => 'card:'.($data['reference'] ?? '').':'.($data['paynowreference'] ?? ''),
             'status' => $this->normalizeStatus((string) ($data['status'] ?? '')),
             'provider_ref' => $data['paynowreference'] ?? null,
             'amount' => isset($data['amount']) ? (float) $data['amount'] : null,
@@ -125,6 +125,6 @@ class CardGateway implements PaymentGateway
             $concat .= $v;
         }
 
-        return strtoupper(hash('sha512', $concat . $key));
+        return strtoupper(hash('sha512', $concat.$key));
     }
 }

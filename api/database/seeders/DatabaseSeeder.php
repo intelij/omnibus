@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Bus;
 use App\Models\BusRoute;
-use App\Models\Passenger;
 use App\Models\Promotion;
 use App\Models\Schedule;
 use App\Models\SeatLayout;
@@ -13,6 +12,8 @@ use App\Models\Tenant;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\BookingService;
+use App\Services\PaymentService;
+use App\Services\TicketService;
 use App\Services\TripService;
 use App\Support\TenantContext;
 use Illuminate\Database\Seeder;
@@ -52,7 +53,7 @@ class DatabaseSeeder extends Seeder
             'slug' => $slug,
             'legal_name' => $legal,
             'trading_name' => $trading,
-            'registration_number' => 'REG-' . strtoupper($slug),
+            'registration_number' => 'REG-'.strtoupper($slug),
             'email' => "ops@{$slug}.example.com",
             'phone' => '+263700000000',
             'currency' => 'USD',
@@ -80,11 +81,11 @@ class DatabaseSeeder extends Seeder
 
         // Users covering every tenant role
         $staff = [
-            ['owner@' . $tenant->slug . '.example.com', 'Tenant Owner', 'tenant_owner'],
-            ['admin@' . $tenant->slug . '.example.com', 'Tenant Admin', 'tenant_admin'],
-            ['agent@' . $tenant->slug . '.example.com', 'Booking Agent', 'booking_agent'],
-            ['finance@' . $tenant->slug . '.example.com', 'Finance Officer', 'finance_officer'],
-            ['support@' . $tenant->slug . '.example.com', 'Support Agent', 'support_agent'],
+            ['owner@'.$tenant->slug.'.example.com', 'Tenant Owner', 'tenant_owner'],
+            ['admin@'.$tenant->slug.'.example.com', 'Tenant Admin', 'tenant_admin'],
+            ['agent@'.$tenant->slug.'.example.com', 'Booking Agent', 'booking_agent'],
+            ['finance@'.$tenant->slug.'.example.com', 'Finance Officer', 'finance_officer'],
+            ['support@'.$tenant->slug.'.example.com', 'Support Agent', 'support_agent'],
         ];
 
         foreach ($staff as [$email, $name, $role]) {
@@ -227,7 +228,7 @@ class DatabaseSeeder extends Seeder
 
         if ($tomorrowTrip) {
             $bookings = app(BookingService::class);
-            $payment = app(\App\Services\PaymentService::class);
+            $payment = app(PaymentService::class);
 
             $booking = $bookings->create([
                 'trip_id' => $tomorrowTrip->id,
@@ -247,8 +248,8 @@ class DatabaseSeeder extends Seeder
             ]);
 
             $cashPayment = $payment->initiate($booking->fresh(), 'cash');
-            $payment->confirmCash($cashPayment, User::where('email', 'finance@' . $tenant->slug . '.example.com')->first());
-            app(\App\Services\TicketService::class)->issueFor($booking->fresh());
+            $payment->confirmCash($cashPayment, User::where('email', 'finance@'.$tenant->slug.'.example.com')->first());
+            app(TicketService::class)->issueFor($booking->fresh());
         }
 
         $ctx->clear();
@@ -274,7 +275,7 @@ class DatabaseSeeder extends Seeder
                     $position = 'none';
                 } elseif ($row === $rows && $col >= 3) {
                     $type = 'toilet';
-                    $label = 'WC' . $col;
+                    $label = 'WC'.$col;
                     $position = 'none';
                 } else {
                     $type = 'standard';

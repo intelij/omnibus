@@ -13,8 +13,11 @@ class Tenant extends Model
     use HasFactory, SoftDeletes;
 
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_SUSPENDED = 'suspended';
+
     public const STATUS_ARCHIVED = 'archived';
 
     protected $fillable = [
@@ -64,7 +67,7 @@ class Tenant extends Model
 
     public function bookingRule(string $key, mixed $default = null): mixed
     {
-        $rules = config("transithub.default_booking_rules", []);
+        $rules = config('transithub.default_booking_rules', []);
 
         return $this->setting("booking_rules.{$key}", $rules[$key] ?? $default);
     }

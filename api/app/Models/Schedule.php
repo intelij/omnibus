@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -42,7 +43,7 @@ class Schedule extends Model
         return $this->hasMany(Trip::class);
     }
 
-    public function runsOn(\Carbon\CarbonInterface $date): bool
+    public function runsOn(CarbonInterface $date): bool
     {
         if ($this->start_date && $date->lt($this->start_date)) {
             return false;

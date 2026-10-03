@@ -11,9 +11,13 @@ class Ticket extends Model
     use BelongsToTenant;
 
     public const STATUS_VALID = 'valid';
+
     public const STATUS_USED = 'used';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_EXPIRED = 'expired';
+
     public const STATUS_REFUNDED = 'refunded';
 
     protected $fillable = [

@@ -27,12 +27,14 @@ interface PaymentGateway
 
     /**
      * Verify and decode an inbound provider webhook.
+     *
      * @return array{event_id:string, status:string, provider_ref?:string, amount?:float, payload:array}
      */
     public function parseWebhook(Request $request): array;
 
     /**
      * Execute a refund with the provider.
+     *
      * @return array{provider_ref: string|null, status: string}
      */
     public function refund(Payment $payment, float $amount, string $reason): array;

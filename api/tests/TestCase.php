@@ -4,16 +4,17 @@ namespace Tests;
 
 use App\Models\Bus;
 use App\Models\BusRoute;
-use App\Models\Schedule;
 use App\Models\SeatLayout;
 use App\Models\Tenant;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\TripService;
 use App\Support\TenantContext;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -23,7 +24,7 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+        $this->seed(RolesAndPermissionsSeeder::class);
     }
 
     protected function tearDown(): void
@@ -35,7 +36,7 @@ abstract class TestCase extends BaseTestCase
     protected function makeTenant(array $overrides = []): Tenant
     {
         return Tenant::create(array_merge([
-            'slug' => 'tenant-' . uniqid(),
+            'slug' => 'tenant-'.uniqid(),
             'legal_name' => 'Test Transport Ltd',
             'trading_name' => 'Test Transport',
             'email' => 'ops@example.com',
@@ -54,7 +55,7 @@ abstract class TestCase extends BaseTestCase
         $user = User::create(array_merge([
             'tenant_id' => $tenant->id,
             'name' => ucfirst(str_replace('_', ' ', $role)),
-            'email' => $role . '.' . uniqid() . '@example.com',
+            'email' => $role.'.'.uniqid().'@example.com',
             'password' => 'password',
             'status' => 'active',
         ], $overrides));
@@ -67,10 +68,10 @@ abstract class TestCase extends BaseTestCase
     protected function makePlatformAdmin(): User
     {
         $admin = User::create([
-            'name' => 'Platform Admin', 'email' => 'admin' . uniqid() . '@platform.test',
+            'name' => 'Platform Admin', 'email' => 'admin'.uniqid().'@platform.test',
             'password' => 'password', 'is_platform_user' => true, 'status' => 'active',
         ]);
-        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId(0);
+        app(PermissionRegistrar::class)->setPermissionsTeamId(0);
         $admin->assignRole(Role::findByName('platform_super_admin', 'sanctum'));
 
         return $admin;
@@ -97,7 +98,7 @@ abstract class TestCase extends BaseTestCase
         }
 
         $bus = Bus::create([
-            'seat_layout_id' => $layout->id, 'registration_number' => 'BUS-' . uniqid(),
+            'seat_layout_id' => $layout->id, 'registration_number' => 'BUS-'.uniqid(),
             'bus_type' => 'coach', 'capacity' => 12, 'status' => 'active',
         ]);
 
@@ -128,14 +129,14 @@ abstract class TestCase extends BaseTestCase
 
     protected function publicGet(Tenant $tenant, string $uri)
     {
-        return $this->getJson($uri . (str_contains($uri, '?') ? '&' : '?') . 'tenant=' . $tenant->slug);
+        return $this->getJson($uri.(str_contains($uri, '?') ? '&' : '?').'tenant='.$tenant->slug);
     }
 
     protected function bookingPayload(Trip $trip, array $overrides = []): array
     {
         // Route lookup must bypass the current tenant context — tests can
         // call this while another tenant's context is bound.
-        $route = \App\Models\BusRoute::withoutTenantScope()->findOrFail($trip->route_id);
+        $route = BusRoute::withoutTenantScope()->findOrFail($trip->route_id);
 
         return array_merge([
             'trip_id' => $trip->id,

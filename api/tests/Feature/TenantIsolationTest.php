@@ -2,9 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Booking;
 use App\Models\Bus;
-use App\Models\BusRoute;
 use App\Models\Payment;
 use App\Models\Trip;
 use Tests\TestCase;

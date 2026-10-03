@@ -7,6 +7,7 @@ use App\Models\Tenant;
 use App\Models\TenantFeature;
 use App\Models\User;
 use App\Support\Audit;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -64,7 +65,7 @@ class TenantController extends Controller
             ]);
             $owner->tenants()->attach($tenant->id);
 
-            app(\App\Support\TenantContext::class)->set($tenant);
+            app(TenantContext::class)->set($tenant);
             $owner->assignRole(Role::findByName('tenant_owner', 'sanctum'));
 
             return [$tenant, $owner];

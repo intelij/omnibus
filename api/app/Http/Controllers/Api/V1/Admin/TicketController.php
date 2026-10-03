@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TicketResource;
+use App\Models\Ticket;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class TicketController extends Controller
     /** QR verify — optionally mark boarded. */
     public function verify(Request $request, TicketService $tickets)
     {
-        $this->authorize('verify', \App\Models\Ticket::class);
+        $this->authorize('verify', Ticket::class);
 
         $data = $request->validate([
             'qr' => ['required', 'string'],

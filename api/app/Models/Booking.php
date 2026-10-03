@@ -14,12 +14,19 @@ class Booking extends Model
     use BelongsToTenant, HasFactory;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_HELD = 'held';
+
     public const STATUS_PENDING_PAYMENT = 'pending_payment';
+
     public const STATUS_CONFIRMED = 'confirmed';
+
     public const STATUS_COMPLETED = 'completed';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_EXPIRED = 'expired';
+
     public const STATUS_REFUNDED = 'refunded';
 
     public const ACTIVE_STATUSES = [self::STATUS_HELD, self::STATUS_PENDING_PAYMENT, self::STATUS_CONFIRMED];
@@ -123,12 +130,15 @@ class Booking extends Model
 
     public function logEvent(string $type, ?int $actorId = null, ?string $actorType = null, array $metadata = []): BookingEvent
     {
-        return $this->events()->create([
+        /** @var BookingEvent $event */
+        $event = $this->events()->create([
             'tenant_id' => $this->tenant_id,
             'type' => $type,
             'actor_id' => $actorId,
             'actor_type' => $actorType,
             'metadata' => $metadata,
         ]);
+
+        return $event;
     }
 }

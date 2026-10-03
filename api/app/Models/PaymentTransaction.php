@@ -13,9 +13,13 @@ class PaymentTransaction extends Model
     public const UPDATED_AT = null;
 
     public const TYPE_INITIATE = 'initiate';
+
     public const TYPE_CALLBACK = 'callback';
+
     public const TYPE_STATUS_CHECK = 'status_check';
+
     public const TYPE_REFUND = 'refund';
+
     public const TYPE_CONFIRMATION = 'confirmation';
 
     protected $fillable = [

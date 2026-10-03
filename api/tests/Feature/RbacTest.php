@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Booking;
 use App\Models\Payment;
 use Tests\TestCase;
 
@@ -63,7 +62,7 @@ class RbacTest extends TestCase
         $this->actingAs($admin, 'sanctum');
 
         $this->postJson('/api/v1/users', [
-            'name' => 'X', 'email' => 'x' . uniqid() . '@example.com',
+            'name' => 'X', 'email' => 'x'.uniqid().'@example.com',
             'password' => 'password1234', 'role' => 'platform_super_admin',
         ])->assertStatus(422);
     }

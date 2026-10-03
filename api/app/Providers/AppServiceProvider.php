@@ -52,7 +52,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Ticket::class, TicketPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
 
-        RateLimiter::for('auth', fn (Request $r) => Limit::perMinute(5)->by(($r->input('email') ?? '') . '|' . $r->ip()));
+        RateLimiter::for('auth', fn (Request $r) => Limit::perMinute(5)->by(($r->input('email') ?? '').'|'.$r->ip()));
         RateLimiter::for('public', fn (Request $r) => Limit::perMinute(60)->by($r->ip()));
         RateLimiter::for('bookings', fn (Request $r) => Limit::perMinute(20)->by($r->ip()));
     }

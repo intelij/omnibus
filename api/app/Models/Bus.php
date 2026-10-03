@@ -14,8 +14,11 @@ class Bus extends Model
     use BelongsToTenant, HasFactory, SoftDeletes;
 
     public const STATUS_ACTIVE = 'active';
+
     public const STATUS_INACTIVE = 'inactive';
+
     public const STATUS_MAINTENANCE = 'maintenance';
+
     public const STATUS_RETIRED = 'retired';
 
     protected $fillable = [

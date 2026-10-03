@@ -1,0 +1,405 @@
+openapi: 3.0.3
+info:
+  title: TransitHub API
+  version: 1.0.0
+  description: |
+    Multi-tenant bus booking platform. Three surfaces:
+
+    - **`/public/*`** — passenger booking surface. Tenant resolved by host
+      (production) or `?tenant={slug}` / `X-Tenant` header (development).
+    - **`/auth`, `/{resource}` (staff)** — Sanctum Bearer token, tenant
+      resolved from the authenticated user.
+    - **`/platform/*`** — platform administration (platform_super_admin only).
+
+    Idempotent mutations accept an `Idempotency-Key` header — retries with the
+    same key + request body return the original result, a different body
+    returns `422`.
+
+servers:
+  - url: http://localhost:8891/api/v1
+    description: Local development
+
+tags:
+  - {name: Health}
+  - {name: Auth}
+  - {name: Public}
+  - {name: Fleet}
+  - {name: Scheduling}
+  - {name: Bookings}
+  - {name: Payments}
+  - {name: Operations}
+  - {name: Administration}
+  - {name: Platform}
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses: {'200': {description: Service is up}}
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe (DB + cache)
+      responses:
+        '200': {description: Ready}
+        '503': {description: Degraded}
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Staff login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email}
+                password: {type: string}
+      responses:
+        '200':
+          description: Token + user profile with roles/permissions
+        '422': {description: Invalid credentials}
+  /auth/logout:
+    post:
+      tags: [Auth]
+      security: [{sanctum: []}]
+      summary: Revoke current token
+      responses: {'200': {description: Logged out}}
+  /auth/me:
+    get:
+      tags: [Auth]
+      security: [{sanctum: []}]
+      summary: Current user profile
+      responses: {'200': {description: User profile}}
+
+  /public/tenant:
+    get:
+      tags: [Public]
+      summary: Tenant branding, payment methods and booking rules
+      responses: {'200': {description: Tenant config}}
+  /public/endpoints:
+    get:
+      tags: [Public]
+      summary: Search autocomplete endpoints (origins/destinations)
+      responses: {'200': {description: Stop name lists}}
+  /public/trips/search:
+    get:
+      tags: [Public]
+      summary: Search bookable trips
+      parameters:
+        - {name: from, in: query, required: true, schema: {type: string}}
+        - {name: to, in: query, required: true, schema: {type: string}}
+        - {name: date, in: query, required: true, schema: {type: string, format: date}}
+        - {name: passengers, in: query, schema: {type: integer, default: 1}}
+        - {name: sort, in: query, schema: {type: string, enum: [price, '-price', departure, '-departure', duration]}}
+      responses: {'200': {description: Trip results with fares + availability}}
+  /public/trips/{trip}:
+    get:
+      tags: [Public]
+      parameters: [{name: trip, in: path, required: true, schema: {type: integer}}]
+      responses:
+        '200': {description: Trip detail}
+        '404': {description: Not found / not bookable}
+  /public/trips/{trip}/seats:
+    get:
+      tags: [Public]
+      summary: Seat availability for a boarding→drop-off segment
+      parameters:
+        - {name: trip, in: path, required: true, schema: {type: integer}}
+        - {name: boarding, in: query, required: true, schema: {type: integer}, description: Stop sequence}
+        - {name: dropoff, in: query, required: true, schema: {type: integer}}
+      responses: {'200': {description: Seat map with per-seat state}}
+  /public/bookings:
+    post:
+      tags: [Public]
+      summary: Create a booking (seats held; optional payment initiation)
+      parameters:
+        - {name: Idempotency-Key, in: header, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/BookingInput'}
+      responses:
+        '201': {description: Booking created (held or pending_payment)}
+        '409': {description: Selected seats no longer available}
+        '422': {description: Validation error}
+  /public/bookings/{reference}:
+    get:
+      tags: [Public]
+      summary: Retrieve a booking (requires ?email= or ?phone= matching contact)
+      parameters:
+        - {name: reference, in: path, required: true, schema: {type: string}}
+        - {name: email, in: query, schema: {type: string}}
+      responses:
+        '200': {description: Booking detail}
+        '403': {description: Contact key missing or mismatched}
+        '404': {description: Not found}
+  /public/bookings/{reference}/payments:
+    post:
+      tags: [Public]
+      summary: Initiate payment on an open booking
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [method]
+              properties:
+                method: {type: string, enum: [cash, card, ecocash, inbucks]}
+      responses: {'201': {description: Payment initiated}}
+  /public/bookings/{reference}/cancel:
+    post:
+      tags: [Public]
+      parameters:
+        - {name: Idempotency-Key, in: header, schema: {type: string}}
+      responses:
+        '200': {description: Cancelled (refund queued if applicable)}
+        '422': {description: Not cancellable}
+  /public/bookings/{reference}/tickets:
+    get:
+      tags: [Public]
+      responses: {'200': {description: Tickets with QR payloads}}
+  /public/promotions/validate:
+    post:
+      tags: [Public]
+      summary: Validate a promo code against a trip
+      responses:
+        '200': {description: Discount preview}
+        '422': {description: Invalid/ineligible code}
+
+  /webhooks/payments/{gateway}:
+    post:
+      tags: [Payments]
+      summary: Provider webhook (signature-verified, deduplicated)
+      parameters: [{name: gateway, in: path, required: true, schema: {type: string, enum: [card, ecocash, inbucks]}}]
+      responses:
+        '200': {description: Event processed or already seen}
+        '401': {description: Signature verification failed}
+
+  /buses:
+    get: {tags: [Fleet], security: [{sanctum: []}], summary: List buses (buses.view), responses: {'200': {description: Paginated list}}}
+    post: {tags: [Fleet], security: [{sanctum: []}], summary: Create bus (buses.create), responses: {'201': {description: Created}, '422': {description: Validation error}}}
+  /buses/{bus}:
+    get: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: bus, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Bus detail}}}
+    patch: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: bus, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: bus, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Removed}, '422': {description: Has upcoming trips}}}
+  /seat-layouts:
+    get: {tags: [Fleet], security: [{sanctum: []}], responses: {'200': {description: Paginated layouts}}}
+    post: {tags: [Fleet], security: [{sanctum: []}], summary: Create layout (seat grid payload), responses: {'201': {description: Created}}}
+  /seat-layouts/{seat_layout}:
+    get: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Layout with seats}}}
+    patch: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Deleted}, '422': {description: In use}}}
+  /seat-layouts/{seat_layout}/publish:
+    post: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Published}}}
+
+  /routes:
+    get: {tags: [Scheduling], security: [{sanctum: []}], responses: {'200': {description: Paginated routes}}}
+    post: {tags: [Scheduling], security: [{sanctum: []}], summary: Create route with stops + fares, responses: {'201': {description: Created}}}
+  /routes/{route}:
+    get: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: route, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Route detail}}}
+    patch: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: route, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: route, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Deleted}, '422': {description: Has upcoming trips}}}
+  /schedules:
+    get: {tags: [Scheduling], security: [{sanctum: []}], responses: {'200': {description: Paginated schedules}}}
+    post: {tags: [Scheduling], security: [{sanctum: []}], responses: {'201': {description: Created}}}
+  /schedules/{schedule}:
+    get: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: schedule, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Schedule detail}}}
+    patch: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: schedule, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: schedule, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Paused}}}
+  /schedules/{schedule}/generate-trips:
+    post: {tags: [Scheduling], security: [{sanctum: []}], parameters: [{name: schedule, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: 'created: N'}}}
+
+  /trips:
+    get: {tags: [Operations], security: [{sanctum: []}], summary: List trips (filterable), responses: {'200': {description: Paginated trips}}}
+    post: {tags: [Operations], security: [{sanctum: []}], summary: Create ad-hoc trip, responses: {'201': {description: Created}}}
+  /trips/{trip}:
+    get: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: trip, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Trip detail + booked count}}}
+  /trips/{trip}/status:
+    post:
+      tags: [Operations]
+      security: [{sanctum: []}]
+      parameters: [{name: trip, in: path, required: true, schema: {type: integer}}]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: {type: string, enum: [boarding, departed, in_transit, arrived, delayed, cancelled, completed]}
+                reason: {type: string}
+      responses: {'200': {description: Updated}}
+  /trips/{trip}/swap-bus:
+    post: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: trip, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Bus swapped, passengers re-seated}}}
+  /trips/{trip}/manifest:
+    get: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: trip, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Passenger manifest}}}
+  /trips/{trip}/seats:
+    get: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: trip, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Seat states}}}
+
+  /bookings:
+    get: {tags: [Bookings], security: [{sanctum: []}], summary: Search bookings, responses: {'200': {description: Paginated}}}
+    post: {tags: [Bookings], security: [{sanctum: []}], summary: Agent-assisted booking, responses: {'201': {description: Created}, '409': {description: Seats unavailable}}}
+  /bookings/{booking}:
+    get: {tags: [Bookings], security: [{sanctum: []}], parameters: [{name: booking, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Booking detail + timeline}}}
+    patch: {tags: [Bookings], security: [{sanctum: []}], parameters: [{name: booking, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Contact details updated}}}
+  /bookings/{booking}/cancel:
+    post: {tags: [Bookings], security: [{sanctum: []}], parameters: [{name: booking, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Cancelled}}}
+  /bookings/{booking}/resend-ticket:
+    post: {tags: [Bookings], security: [{sanctum: []}], parameters: [{name: booking, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Ticket resent}}}
+  /tickets/verify:
+    post:
+      tags: [Bookings]
+      security: [{sanctum: []}]
+      summary: Verify QR payload; optionally mark boarded
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [qr]
+              properties:
+                qr: {type: string}
+                mark_used: {type: boolean}
+      responses:
+        '200': {description: Ticket validity + booking summary}
+        '422': {description: Invalid code}
+
+  /payments:
+    get: {tags: [Payments], security: [{sanctum: []}], responses: {'200': {description: Paginated payments}}}
+  /payments/{payment}:
+    get: {tags: [Payments], security: [{sanctum: []}], parameters: [{name: payment, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Payment + transactions + refunds}}}
+  /payments/{payment}/confirm:
+    post: {tags: [Payments], security: [{sanctum: []}], summary: Confirm cash payment (payments.confirm_cash), parameters: [{name: payment, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Confirmed + booking confirmed}}}
+  /payments/{payment}/refund:
+    post:
+      tags: [Payments]
+      security: [{sanctum: []}]
+      parameters:
+        - {name: payment, in: path, required: true, schema: {type: integer}}
+        - {name: Idempotency-Key, in: header, schema: {type: string}}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, reason]
+              properties:
+                amount: {type: number}
+                reason: {type: string}
+      responses: {'201': {description: Refund record}}
+  /reconciliation:
+    get: {tags: [Payments], security: [{sanctum: []}], responses: {'200': {description: Pending/processing queues}}}
+  /payments-export:
+    get: {tags: [Payments], security: [{sanctum: []}], responses: {'200': {description: CSV export, content: {'text/csv': {}}}}}
+
+  /promotions:
+    get: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Paginated promotions}}}
+    post: {tags: [Administration], security: [{sanctum: []}], responses: {'201': {description: Created}}}
+  /promotions/{promotion}:
+    get: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: promotion, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Detail}}}
+    patch: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: promotion, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: promotion, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Deleted}}}
+
+  /users:
+    get: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Tenant staff}}}
+    post: {tags: [Administration], security: [{sanctum: []}], responses: {'201': {description: Created}}}
+  /users/{user}:
+    get: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: user, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: User}}}
+    patch: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: user, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: user, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Disabled}}}
+  /users/{user}/status:
+    post: {tags: [Administration], security: [{sanctum: []}], parameters: [{name: user, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Status changed}}}
+
+  /support-tickets:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Paginated tickets}}}
+    post: {tags: [Operations], security: [{sanctum: []}], responses: {'201': {description: Created}}}
+  /support-tickets/{support_ticket}:
+    get: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: support_ticket, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Ticket + notes}}}
+    patch: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: support_ticket, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
+    delete: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: support_ticket, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Closed}}}
+  /support-tickets/{support_ticket}/notes:
+    post: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: support_ticket, in: path, required: true, schema: {type: integer}}], responses: {'201': {description: Note added}}}
+  /support-tickets/{support_ticket}/assign:
+    post: {tags: [Operations], security: [{sanctum: []}], parameters: [{name: support_ticket, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Assigned}}}
+
+  /dashboard:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Role-aware dashboard}}}
+  /onboarding:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Setup checklist progress}}}
+  /reports/revenue:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Revenue by method + refunds}}}
+  /reports/occupancy:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Trip occupancy}}}
+  /reports/agents:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Agent performance}}}
+  /reports/payments:
+    get: {tags: [Operations], security: [{sanctum: []}], responses: {'200': {description: Payment health}}}
+  /settings:
+    get: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Tenant settings}}}
+  /settings/branding:
+    patch: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Branding updated}}}
+  /settings/rules:
+    patch: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Booking rules updated}}}
+  /settings/payments:
+    patch: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Payment methods updated}}}
+  /files:
+    post: {tags: [Administration], security: [{sanctum: []}], responses: {'201': {description: Uploaded}}}
+  /audit-logs:
+    get: {tags: [Administration], security: [{sanctum: []}], responses: {'200': {description: Paginated audit trail}}}
+
+  /platform/tenants:
+    get: {tags: [Platform], security: [{sanctum: []}], responses: {'200': {description: All tenants}}}
+    post: {tags: [Platform], security: [{sanctum: []}], summary: Onboard tenant + owner, responses: {'201': {description: Created}}}
+  /platform/tenants/{tenant}:
+    get: {tags: [Platform], security: [{sanctum: []}], parameters: [{name: tenant, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Tenant detail}}}
+  /platform/tenants/{tenant}/status:
+    patch: {tags: [Platform], security: [{sanctum: []}], parameters: [{name: tenant, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Status changed}}}
+  /platform/tenants/{tenant}/features:
+    patch: {tags: [Platform], security: [{sanctum: []}], parameters: [{name: tenant, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Feature flags set}}}
+  /platform/reports/overview:
+    get: {tags: [Platform], security: [{sanctum: []}], responses: {'200': {description: Cross-tenant aggregates}}}
+  /platform/audit-logs:
+    get: {tags: [Platform], security: [{sanctum: []}], responses: {'200': {description: Cross-tenant audit}}}
+
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+  schemas:
+    BookingInput:
+      type: object
+      required: [trip_id, boarding_stop_id, dropoff_stop_id, boarding_sequence, dropoff_sequence, contact_name, contact_phone, passengers]
+      properties:
+        trip_id: {type: integer}
+        boarding_stop_id: {type: integer}
+        dropoff_stop_id: {type: integer}
+        boarding_sequence: {type: integer}
+        dropoff_sequence: {type: integer}
+        trip_seat_ids: {type: array, items: {type: integer}, description: Explicit seat selection; omit for auto-allocation}
+        seat_preference: {type: string, enum: [together, front, rear, window, aisle, any]}
+        ticket_type: {type: string, enum: [dated, open]}
+        payment_method: {type: string, enum: [cash, card, ecocash, inbucks]}
+        promotion_code: {type: string}
+        contact_name: {type: string}
+        contact_email: {type: string, format: email}
+        contact_phone: {type: string}
+        passengers:
+          type: array
+          items:
+            type: object
+            required: [first_name, last_name]
+            properties:
+              first_name: {type: string}
+              last_name: {type: string}
+              passenger_type: {type: string, enum: [adult, child, senior]}
+              email: {type: string, format: email}
+              phone: {type: string}
+              id_document: {type: string}
+              date_of_birth: {type: string, format: date}
+              special_requirements: {type: string}

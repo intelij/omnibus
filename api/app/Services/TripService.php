@@ -4,8 +4,12 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\Bus;
+use App\Models\BusRoute;
 use App\Models\Schedule;
 use App\Models\Trip;
+use App\Models\TripSeat;
+use App\Models\TripSeatLeg;
+use App\Models\User;
 use App\StateMachines\BookingStateMachine;
 use App\Support\Audit;
 use Carbon\Carbon;
@@ -34,7 +38,7 @@ class TripService
                 continue;
             }
 
-            $departure = Carbon::parse($date->toDateString() . ' ' . $schedule->departure_time, $schedule->tenant->timezone)->utc();
+            $departure = Carbon::parse($date->toDateString().' '.$schedule->departure_time, $schedule->tenant->timezone)->utc();
 
             $exists = Trip::where('schedule_id', $schedule->id)
                 ->whereDate('departure_at', $departure->toDateString())
@@ -66,7 +70,7 @@ class TripService
     public function create(array $data): Trip
     {
         return DB::transaction(function () use ($data) {
-            $route = \App\Models\BusRoute::findOrFail($data['route_id']);
+            $route = BusRoute::findOrFail($data['route_id']);
             $bus = Bus::findOrFail($data['bus_id']);
 
             $departure = Carbon::parse($data['departure_at'], tenant()->timezone)->utc();
@@ -90,7 +94,7 @@ class TripService
         });
     }
 
-    public function transitionStatus(Trip $trip, string $status, array $extra = [], ?\App\Models\User $actor = null): Trip
+    public function transitionStatus(Trip $trip, string $status, array $extra = [], ?User $actor = null): Trip
     {
         $allowed = [Trip::STATUS_BOARDING, Trip::STATUS_DEPARTED, Trip::STATUS_IN_TRANSIT,
             Trip::STATUS_ARRIVED, Trip::STATUS_DELAYED, Trip::STATUS_CANCELLED, Trip::STATUS_COMPLETED];
@@ -135,11 +139,11 @@ class TripService
 
             // Remove old inventory for legs not yet consumed by bookings.
             $bookedLegs = $trip->seats()
-                ->whereHas('legs', fn ($q) => $q->where('state', \App\Models\TripSeatLeg::STATE_BOOKED))
+                ->whereHas('legs', fn ($q) => $q->where('state', TripSeatLeg::STATE_BOOKED))
                 ->pluck('id');
-            \App\Models\TripSeat::where('trip_id', $trip->id)
+            TripSeat::where('trip_id', $trip->id)
                 ->whereNotIn('id', $bookedLegs)->delete();
-            \App\Models\TripSeatLeg::where('trip_id', $trip->id)->whereNull('booking_id')->delete();
+            TripSeatLeg::where('trip_id', $trip->id)->whereNull('booking_id')->delete();
 
             // Materialise new layout seats that don't exist yet.
             $newBus->loadMissing('seatLayout.seats');
@@ -148,7 +152,7 @@ class TripService
                 if ($existingSeatIds->contains($seat->id)) {
                     continue;
                 }
-                $tripSeat = \App\Models\TripSeat::create([
+                $tripSeat = TripSeat::create([
                     'tenant_id' => $trip->tenant_id, 'trip_id' => $trip->id, 'seat_id' => $seat->id,
                     'deck' => $seat->deck, 'row' => $seat->row, 'col' => $seat->col,
                     'label' => $seat->label, 'type' => $seat->type, 'position' => $seat->position,
@@ -156,7 +160,7 @@ class TripService
                 ]);
                 $legCount = max(1, $trip->route->stops->count() - 1);
                 for ($leg = 0; $leg < $legCount; $leg++) {
-                    \App\Models\TripSeatLeg::create([
+                    TripSeatLeg::create([
                         'tenant_id' => $trip->tenant_id, 'trip_id' => $trip->id,
                         'trip_seat_id' => $tripSeat->id, 'leg_index' => $leg,
                     ]);
@@ -173,13 +177,13 @@ class TripService
                         $match = $match ? TripSeat::find($match[0]) : null;
                     }
                     if ($match && $match->id !== $bs->trip_seat_id) {
-                        \App\Models\TripSeatLeg::where('trip_seat_id', $bs->trip_seat_id)
+                        TripSeatLeg::where('trip_seat_id', $bs->trip_seat_id)
                             ->whereBetween('leg_index', [$bs->boarding_sequence, $bs->dropoff_sequence - 1])
                             ->where('booking_id', $booking->id)
                             ->update(['state' => 'available', 'booking_id' => null, 'held_until' => null, 'hold_token' => null]);
 
                         $bs->update(['trip_seat_id' => $match->id, 'seat_label' => $match->label]);
-                        \App\Models\TripSeatLeg::where('trip_seat_id', $match->id)
+                        TripSeatLeg::where('trip_seat_id', $match->id)
                             ->whereBetween('leg_index', [$bs->boarding_sequence, $bs->dropoff_sequence - 1])
                             ->update(['state' => 'booked', 'booking_id' => $booking->id, 'held_until' => null, 'hold_token' => null]);
 

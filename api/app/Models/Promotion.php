@@ -6,12 +6,19 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon|null $starts_at
+ * @property Carbon|null $ends_at
+ * @property array|null $constraints
+ */
 class Promotion extends Model
 {
     use BelongsToTenant, HasFactory;
 
     public const TYPE_PERCENT = 'percent';
+
     public const TYPE_FIXED = 'fixed';
 
     protected $fillable = [

@@ -20,6 +20,6 @@ if (! function_exists('tenant_id')) {
 if (! function_exists('tenant_cache_key')) {
     function tenant_cache_key(string $key): string
     {
-        return 'tenant:' . (tenant_id() ?? 'platform') . ':' . $key;
+        return 'tenant:'.(tenant_id() ?? 'platform').':'.$key;
     }
 }

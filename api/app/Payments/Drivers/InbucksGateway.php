@@ -39,7 +39,7 @@ class InbucksGateway implements PaymentGateway
 
         $cfg = config('transithub.payment_gateways.inbucks');
 
-        $response = Http::withToken($cfg['api_key'])->post($cfg['endpoint'] . '/payments', [
+        $response = Http::withToken($cfg['api_key'])->post($cfg['endpoint'].'/payments', [
             'amount' => (float) $payment->amount,
             'currency' => $payment->currency,
             'reference' => $payment->booking->booking_reference,
@@ -75,7 +75,7 @@ class InbucksGateway implements PaymentGateway
         $data = $request->json()->all();
 
         return [
-            'event_id' => 'inbucks:' . ($data['id'] ?? '') . ':' . ($data['status'] ?? ''),
+            'event_id' => 'inbucks:'.($data['id'] ?? '').':'.($data['status'] ?? ''),
             'status' => $this->normalizeStatus((string) ($data['status'] ?? '')),
             'provider_ref' => $data['id'] ?? null,
             'amount' => isset($data['amount']) ? (float) $data['amount'] : null,
@@ -91,7 +91,7 @@ class InbucksGateway implements PaymentGateway
         }
 
         $cfg = config('transithub.payment_gateways.inbucks');
-        $response = Http::withToken($cfg['api_key'])->post($cfg['endpoint'] . '/refunds', [
+        $response = Http::withToken($cfg['api_key'])->post($cfg['endpoint'].'/refunds', [
             'payment_id' => $payment->provider_ref,
             'amount' => $amount,
             'reason' => $reason,

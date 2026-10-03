@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 class FileController extends Controller
 {
     private const MAX_BYTES = 5 * 1024 * 1024;
+
     private const ALLOWED_MIMES = ['image/png', 'image/jpeg', 'image/webp', 'application/pdf'];
 
     public function store(Request $request)
@@ -18,7 +19,7 @@ class FileController extends Controller
         abort_unless($request->user()->can('settings.update') || $request->user()->can('branding.update'), 403);
 
         $request->validate([
-            'file' => ['required', 'file', 'max:' . (self::MAX_BYTES / 1024)],
+            'file' => ['required', 'file', 'max:'.(self::MAX_BYTES / 1024)],
             'kind' => ['required', 'in:logo,bus_photo,document,ticket_asset'],
         ]);
 

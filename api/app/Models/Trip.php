@@ -7,18 +7,31 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * @property Carbon $departure_at
+ * @property Carbon|null $arrival_estimate_at
+ * @property Carbon|null $delayed_until
+ */
 class Trip extends Model
 {
     use BelongsToTenant, HasFactory;
 
     public const STATUS_SCHEDULED = 'scheduled';
+
     public const STATUS_BOARDING = 'boarding';
+
     public const STATUS_DEPARTED = 'departed';
+
     public const STATUS_IN_TRANSIT = 'in_transit';
+
     public const STATUS_ARRIVED = 'arrived';
+
     public const STATUS_DELAYED = 'delayed';
+
     public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_COMPLETED = 'completed';
 
     public const BOOKABLE_STATUSES = [self::STATUS_SCHEDULED, self::STATUS_BOARDING, self::STATUS_DELAYED];

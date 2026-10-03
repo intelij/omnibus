@@ -40,7 +40,7 @@ class EcocashGateway implements PaymentGateway
 
         $cfg = config('transithub.payment_gateways.ecocash');
 
-        $response = Http::post($cfg['endpoint'] . '/v1/transaction/initiate', [
+        $response = Http::post($cfg['endpoint'].'/v1/transaction/initiate', [
             'merchantCode' => $cfg['merchant_code'],
             'merchantPin' => $cfg['merchant_pin'],
             'merchantNumber' => $cfg['merchant_number'] ?? null,
@@ -79,7 +79,7 @@ class EcocashGateway implements PaymentGateway
         $data = $request->json()->all();
 
         return [
-            'event_id' => 'ecocash:' . ($data['transactionReference'] ?? '') . ':' . ($data['status'] ?? ''),
+            'event_id' => 'ecocash:'.($data['transactionReference'] ?? '').':'.($data['status'] ?? ''),
             'status' => $this->normalizeStatus((string) ($data['status'] ?? '')),
             'provider_ref' => $data['transactionReference'] ?? null,
             'amount' => isset($data['amount']) ? (float) $data['amount'] : null,
@@ -95,7 +95,7 @@ class EcocashGateway implements PaymentGateway
         }
 
         $cfg = config('transithub.payment_gateways.ecocash');
-        $response = Http::post($cfg['endpoint'] . '/v1/transaction/refund', [
+        $response = Http::post($cfg['endpoint'].'/v1/transaction/refund', [
             'merchantCode' => $cfg['merchant_code'],
             'merchantPin' => $cfg['merchant_pin'],
             'transactionReference' => $payment->provider_ref,

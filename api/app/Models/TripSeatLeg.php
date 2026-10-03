@@ -6,18 +6,23 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Per (trip, seat, route-leg) inventory row. A seat booked for legs
  * [boarding..dropoff) remains available on disjoint legs — this is what
  * makes Harare→Kwekwe free the seat for Kwekwe→Bulawayo.
+ *
+ * @property Carbon|null $held_until
  */
 class TripSeatLeg extends Model
 {
     use BelongsToTenant, HasFactory;
 
     public const STATE_AVAILABLE = 'available';
+
     public const STATE_HELD = 'held';
+
     public const STATE_BOOKED = 'booked';
 
     protected $fillable = [

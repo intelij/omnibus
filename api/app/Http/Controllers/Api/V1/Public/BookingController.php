@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBookingRequest;
 use App\Http\Resources\BookingResource;
 use App\Http\Resources\TicketResource;
+use App\Http\Resources\TripResource;
 use App\Models\Booking;
 use App\Notifications\BookingCancelled;
 use App\Notifications\PaymentInstructions;
 use App\Services\BookingService;
 use App\Services\PaymentService;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -93,7 +95,7 @@ class BookingController extends Controller
         $booking = $this->findForGuest($reference, $request);
 
         if ($booking->tickets->isEmpty()) {
-            app(\App\Services\TicketService::class)->issueFor($booking);
+            app(TicketService::class)->issueFor($booking);
         }
 
         return TicketResource::collection($booking->tickets()->with('booking.trip.route')->get())
@@ -101,7 +103,7 @@ class BookingController extends Controller
                 'booking_reference' => $booking->booking_reference,
                 'operator' => $booking->tenant->trading_name,
                 'branding' => $booking->tenant->branding,
-                'trip' => new \App\Http\Resources\TripResource($booking->trip->load('route.stops')),
+                'trip' => new TripResource($booking->trip->load('route.stops')),
             ]);
     }
 

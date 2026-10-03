@@ -29,7 +29,7 @@ class BookingCancelled extends Notification implements ShouldQueue
         $mail = (new MailMessage)
             ->subject("{$tenant->trading_name}: Booking {$this->booking->booking_reference} cancelled")
             ->line("Your booking {$this->booking->booking_reference} has been cancelled.")
-            ->line('Reason: ' . ($this->booking->cancellation_reason ?? '—'));
+            ->line('Reason: '.($this->booking->cancellation_reason ?? '—'));
 
         if ($this->refundAmount !== null && $this->refundAmount > 0) {
             $mail->line("A refund of {$this->booking->currency} {$this->refundAmount} will be processed to your original payment method.");

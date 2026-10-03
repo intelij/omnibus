@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
 use App\Models\Bus;
 use App\Models\Trip;
+use App\Models\TripSeatLeg;
 use App\Services\SeatInventoryService;
 use App\Services\TripService;
 use Illuminate\Http\Request;
@@ -56,7 +57,7 @@ class TripController extends Controller
         $trip->load(['route.stops', 'bus.seatLayout']);
 
         return (new TripResource($trip))->additional([
-            'booked_seats' => \App\Models\TripSeatLeg::where('trip_id', $trip->id)->where('state', 'booked')->distinct('trip_seat_id')->count('trip_seat_id'),
+            'booked_seats' => TripSeatLeg::where('trip_id', $trip->id)->where('state', 'booked')->distinct('trip_seat_id')->count('trip_seat_id'),
         ]);
     }
 

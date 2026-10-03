@@ -12,10 +12,15 @@ class SeatLayoutSeat extends Model
     use BelongsToTenant, HasFactory;
 
     public const TYPE_STANDARD = 'standard';
+
     public const TYPE_PREMIUM = 'premium';
+
     public const TYPE_VIP = 'vip';
+
     public const TYPE_ACCESSIBLE = 'disabled_access';
+
     public const TYPE_STAFF = 'staff';
+
     public const NON_BOOKABLE_TYPES = ['driver', 'toilet', 'kitchen', 'stairs', 'exit', 'staff'];
 
     protected $fillable = [

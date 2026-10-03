@@ -4,7 +4,10 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Refund;
+use App\Models\SeatLayoutSeat;
 use App\Models\Trip;
+use App\Models\TripSeatLeg;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -43,7 +46,7 @@ class ReportService
         return [
             'by_method' => $payments,
             'total' => (float) $payments->sum('total'),
-            'refunded' => (float) \App\Models\Refund::where('status', 'processed')
+            'refunded' => (float) Refund::where('status', 'processed')
                 ->whereBetween('processed_at', [$from, $to])->sum('amount'),
         ];
     }
@@ -53,19 +56,20 @@ class ReportService
         return Trip::whereBetween('departure_at', [$from, $to])
             ->whereIn('status', [Trip::STATUS_SCHEDULED, Trip::STATUS_DEPARTED, Trip::STATUS_IN_TRANSIT, Trip::STATUS_ARRIVED, Trip::STATUS_COMPLETED])
             ->withCount([
-                'seats as total_seats' => fn ($q) => $q->whereNotIn('type', \App\Models\SeatLayoutSeat::NON_BOOKABLE_TYPES),
+                'seats as total_seats' => fn ($q) => $q->whereNotIn('type', SeatLayoutSeat::NON_BOOKABLE_TYPES),
             ])
             ->with(['route:id,name'])
             ->get()
             ->map(function (Trip $trip) {
-                $booked = \App\Models\TripSeatLeg::where('trip_id', $trip->id)->where('state', 'booked')->distinct('trip_seat_id')->count('trip_seat_id');
+                $booked = TripSeatLeg::where('trip_id', $trip->id)->where('state', 'booked')->distinct('trip_seat_id')->count('trip_seat_id');
+
                 return [
                     'trip_id' => $trip->id,
                     'route' => $trip->route?->name,
                     'departure_at' => $trip->departure_at,
-                    'seats' => $trip->total_seats,
+                    'seats' => (int) $trip->getAttribute('total_seats'),
                     'booked' => $booked,
-                    'occupancy' => $trip->total_seats ? round($booked / $trip->total_seats * 100, 1) : 0,
+                    'occupancy' => $trip->getAttribute('total_seats') ? round($booked / (int) $trip->getAttribute('total_seats') * 100, 1) : 0,
                 ];
             })->all();
     }
@@ -78,7 +82,8 @@ class ReportService
             ->select('users.name', 'bookings.user_id', DB::raw('count(*) as bookings'), DB::raw('sum(bookings.total) as revenue'))
             ->groupBy('bookings.user_id', 'users.name')
             ->orderByDesc('revenue')
-            ->get();
+            ->get()
+            ->all();
     }
 
     public function paymentFailures(CarbonInterface $from, CarbonInterface $to): array

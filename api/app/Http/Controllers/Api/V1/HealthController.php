@@ -15,7 +15,11 @@ class HealthController extends Controller
     public function ready()
     {
         $checks = [
-            'db' => fn () => DB::select('select 1') !== null,
+            'db' => function () {
+                DB::select('select 1');
+
+                return true;
+            },
             'cache' => fn () => cache()->store()->getStore() !== null,
         ];
 

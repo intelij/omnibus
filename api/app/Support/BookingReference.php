@@ -20,7 +20,7 @@ class BookingReference
             for ($i = 0; $i < 6; $i++) {
                 $code .= $alphabet[random_int(0, $max)];
             }
-            $reference = 'TH-' . $code;
+            $reference = 'TH-'.$code;
         } while (Booking::withoutTenantScope()->where('booking_reference', $reference)->exists());
 
         return $reference;

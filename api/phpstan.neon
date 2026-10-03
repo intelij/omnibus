@@ -1,0 +1,17 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    paths:
+        - app/
+    level: 4
+    # Eloquent magic attributes (cast accessors) aren't statically knowable;
+    # relation types are handled via docblock generics where they matter.
+    checkModelProperties: false
+    treatPhpDocTypesAsCertain: false
+    ignoreErrors:
+        - '#Access to an undefined property Illuminate\\Database\\Eloquent\\Model::\$#'
+        - '#Call to an undefined method Illuminate\\Database\\Eloquent\\Model::#'
+        # API resources proxy to their wrapped model via __get.
+        - '#Using nullsafe property access .* on left side of \?\? is unnecessary#'
+        - '#Called .count. on Laravel collection#'

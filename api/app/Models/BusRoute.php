@@ -46,6 +46,7 @@ class BusRoute extends Model
 
     public function fareFor(int $fromSequence, int $toSequence, string $passengerType = 'adult'): ?RouteFare
     {
+        /** @var RouteFare|null */
         return $this->fares()
             ->where(function ($q) use ($fromSequence, $toSequence) {
                 $q->where(function ($q2) use ($fromSequence, $toSequence) {

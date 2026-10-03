@@ -37,8 +37,8 @@ class ResolvePublicTenant
     {
         $base = config('transithub.base_domain');
 
-        if ($host !== $base && str_ends_with($host, '.' . $base)) {
-            $slug = substr($host, 0, -strlen('.' . $base));
+        if ($host !== $base && str_ends_with($host, '.'.$base)) {
+            $slug = substr($host, 0, -strlen('.'.$base));
 
             return Tenant::where('slug', $slug)->first();
         }

@@ -13,8 +13,8 @@ use Illuminate\Support\Collection;
 class PricingService
 {
     /**
-     * @param Collection<int, TripSeat> $seats
-     * @param list<array> $passengers passenger payloads with passenger_type
+     * @param  Collection<int, TripSeat>  $seats
+     * @param  list<array>  $passengers  passenger payloads with passenger_type
      * @return array{currency:string, subtotal:float, seat_modifiers:float, total_before_discount:float, breakdown:list<array>}
      */
     public function quote(Trip $trip, Collection $seats, array $passengers, int $boardingSeq, int $dropoffSeq): array
@@ -35,7 +35,7 @@ class PricingService
             $fare = $route->fareFor($boardingSeq, $dropoffSeq, $type);
             $base = $fare ? (float) $fare->amount : (float) $trip->base_fare;
 
-            $modifier = (float) ($seatList[$i]?->price_modifier ?? 0);
+            $modifier = isset($seatList[$i]) ? (float) $seatList[$i]->price_modifier : 0;
             $seatModifiers += $modifier;
             $line = round($base + $modifier, 2);
             $subtotal += $line;

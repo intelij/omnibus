@@ -6,13 +6,16 @@ use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class TripSeat extends Model
 {
     use BelongsToTenant, HasFactory;
 
     public const STATE_AVAILABLE = 'available';
+
     public const STATE_BLOCKED = 'blocked';
+
     public const STATE_MAINTENANCE = 'maintenance';
 
     protected $fillable = [
@@ -37,7 +40,7 @@ class TripSeat extends Model
         return $this->belongsTo(SeatLayoutSeat::class, 'seat_id');
     }
 
-    public function legs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function legs(): HasMany
     {
         return $this->hasMany(TripSeatLeg::class)->orderBy('leg_index');
     }

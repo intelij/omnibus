@@ -7,7 +7,6 @@ use App\Models\Booking;
 use App\Models\Promotion;
 use App\Models\PromotionRedemption;
 use App\Models\Trip;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PromotionService
@@ -33,7 +32,7 @@ class PromotionService
             throw new InvalidPromotionException('This promotion has expired.');
         }
         if ($promo->min_spend !== null && $subtotal < (float) $promo->min_spend) {
-            throw new InvalidPromotionException('This promotion requires a minimum spend of ' . $promo->min_spend . '.');
+            throw new InvalidPromotionException('This promotion requires a minimum spend of '.$promo->min_spend.'.');
         }
 
         $constraints = $promo->constraints ?? [];

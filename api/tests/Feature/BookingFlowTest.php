@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Booking;
 use App\Models\Payment;
-use App\Models\Ticket;
+use App\Models\TripSeat;
 use App\Models\TripSeatLeg;
+use App\Services\SeatInventoryService;
+use App\Services\TicketService;
 use Tests\TestCase;
 
 class BookingFlowTest extends TestCase
@@ -44,7 +46,7 @@ class BookingFlowTest extends TestCase
         $this->assertEquals(4, TripSeatLeg::where('booking_id', $booking->id)->where('state', 'booked')->count());
 
         // Tickets issued + QR verify works (agent has tickets.verify)
-        app(\App\Services\TicketService::class)->issueFor($booking);
+        app(TicketService::class)->issueFor($booking);
         $ticket = $booking->tickets()->first();
         $this->assertSame('valid', $ticket->status);
 
@@ -69,7 +71,7 @@ class BookingFlowTest extends TestCase
         $this->assertGreaterThan(0, $held);
 
         $this->travel(11)->minutes(); // default seat_hold_minutes = 10
-        app(\App\Services\SeatInventoryService::class)->releaseExpiredHolds();
+        app(SeatInventoryService::class)->releaseExpiredHolds();
 
         $this->assertEquals(0, TripSeatLeg::where('state', 'held')->count());
     }
@@ -119,7 +121,7 @@ class BookingFlowTest extends TestCase
         $trip = $this->makeTrip($tenant);
 
         // Passenger A books seat 1 for legs 0→1 (Harare→Kwekwe)
-        $seat = \App\Models\TripSeat::where('trip_id', $trip->id)->where('label', '1')->first();
+        $seat = TripSeat::where('trip_id', $trip->id)->where('label', '1')->first();
         $stopB = $trip->route->stops()->where('sequence', 1)->first();
 
         $a = $this->publicPost($tenant, '/api/v1/public/bookings', $this->bookingPayload($trip, [

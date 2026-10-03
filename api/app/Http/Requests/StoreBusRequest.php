@@ -21,7 +21,7 @@ class StoreBusRequest extends FormRequest
             'fleet_number' => ['nullable', 'string', 'max:30'],
             'make' => ['nullable', 'string', 'max:60'],
             'model' => ['nullable', 'string', 'max:60'],
-            'year' => ['nullable', 'integer', 'min:1950', 'max:' . (date('Y') + 2)],
+            'year' => ['nullable', 'integer', 'min:1950', 'max:'.(date('Y') + 2)],
             'bus_type' => ['required', 'in:coach,minibus,double_decker,vip_coach'],
             'decks' => ['nullable', 'integer', 'in:1,2'],
             'amenities' => ['nullable', 'array'],

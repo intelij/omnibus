@@ -22,7 +22,7 @@ class Idempotency
         }
 
         $tenantId = $request->attributes->get('tenant')?->id ?? tenant_id();
-        $endpoint = $request->method() . ' ' . $request->path();
+        $endpoint = $request->method().' '.$request->path();
         $requestHash = hash('sha256', $request->getContent());
 
         $existing = IdempotencyKey::where('tenant_id', $tenantId)

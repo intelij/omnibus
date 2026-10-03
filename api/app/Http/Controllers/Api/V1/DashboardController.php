@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\SupportTicket;
 use App\Services\ReportService;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,7 @@ class DashboardController extends Controller
         }
         if ($user->can('support.view')) {
             $data['widgets']['support'] = [
-                'open_tickets' => \App\Models\SupportTicket::where('status', 'open')->count(),
+                'open_tickets' => SupportTicket::where('status', 'open')->count(),
             ];
         }
 

@@ -2,9 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Booking;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Booking */
 class BookingResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -37,6 +39,9 @@ class BookingResource extends JsonResource
                 'status' => $this->latestPayment->status,
                 'instructions' => $this->latestPayment->instructions,
             ] : null),
+            'events' => $this->whenLoaded('events', fn () => $this->events->map(fn ($e) => [
+                'id' => $e->id, 'event' => $e->event, 'actor_type' => $e->actor_type, 'created_at' => $e->created_at,
+            ])),
             'expires_at' => $this->expires_at,
             'confirmed_at' => $this->confirmed_at,
             'cancelled_at' => $this->cancelled_at,

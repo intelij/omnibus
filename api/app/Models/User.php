@@ -14,7 +14,6 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     use BelongsToTenant;
-
     use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     protected $guard_name = 'sanctum';

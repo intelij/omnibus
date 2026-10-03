@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Exceptions\InvalidStateTransition;
 use App\Exceptions\SeatUnavailableException;
 use App\Models\Booking;
 use App\Models\Passenger;
+use App\Models\Ticket;
 use App\Models\Trip;
 use App\Models\TripSeat;
 use App\Models\User;
@@ -30,7 +30,7 @@ class BookingService
      * Create a booking: validate → hold seats → price → promo → persist.
      * All inside one transaction; seat hold is row-locked (SEAT_ENGINE.md).
      *
-     * @param array $data Validated request payload.
+     * @param  array  $data  Validated request payload.
      */
     public function create(array $data, ?User $creator = null): Booking
     {
@@ -211,7 +211,7 @@ class BookingService
                 $this->promotions->reverseFor($booking);
             }
 
-            $booking->tickets()->update(['status' => \App\Models\Ticket::STATUS_CANCELLED]);
+            $booking->tickets()->update(['status' => Ticket::STATUS_CANCELLED]);
 
             $booking->logEvent('cancelled', $actor?->id, $actor ? 'user' : 'system', ['reason' => $reason]);
             Audit::record('booking.cancelled', $booking, ['reason' => $reason]);

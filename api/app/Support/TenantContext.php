@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Tenant;
 use RuntimeException;
+use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Holds the tenant resolved for the current request/job. Bound as a
@@ -19,7 +20,7 @@ class TenantContext
         $this->tenant = $tenant;
 
         if ($tenant) {
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
+            app(PermissionRegistrar::class)->setPermissionsTeamId($tenant->id);
         }
     }
 

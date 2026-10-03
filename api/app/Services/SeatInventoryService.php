@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\SeatUnavailableException;
 use App\Models\Booking;
+use App\Models\SeatLayoutSeat;
 use App\Models\Trip;
 use App\Models\TripSeat;
 use App\Models\TripSeatLeg;
@@ -121,7 +122,8 @@ class SeatInventoryService
 
     /**
      * Hold seats for a segment inside the caller's transaction.
-     * @param list<int> $tripSeatIds
+     *
+     * @param  list<int>  $tripSeatIds
      */
     public function hold(Trip $trip, array $tripSeatIds, int $boardingSeq, int $dropoffSeq, ?Booking $booking = null, ?string $holdToken = null): string
     {
@@ -160,7 +162,7 @@ class SeatInventoryService
             $ours = $leg->state === TripSeatLeg::STATE_HELD && $booking && $leg->booking_id === $booking->id;
 
             if (! ($leg->state === TripSeatLeg::STATE_AVAILABLE || $expired || $ours)) {
-                $label = $seats->firstWhere('id', $leg->trip_seat_id)?->label ?? '?';
+                $label = (string) ($seats->firstWhere('id', $leg->trip_seat_id)->label ?? '?');
                 throw new SeatUnavailableException("Seat {$label} is no longer available.");
             }
         }
@@ -262,7 +264,7 @@ class SeatInventoryService
             ->whereIn('leg_index', $legIndexes)
             ->whereHas('tripSeat', fn ($q) => $q
                 ->where('state', TripSeat::STATE_AVAILABLE)
-                ->whereNotIn('type', \App\Models\SeatLayoutSeat::NON_BOOKABLE_TYPES))
+                ->whereNotIn('type', SeatLayoutSeat::NON_BOOKABLE_TYPES))
             ->where(fn ($q) => $q
                 ->where('state', TripSeatLeg::STATE_AVAILABLE)
                 ->orWhere(fn ($q2) => $q2

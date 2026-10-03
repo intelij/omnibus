@@ -6,6 +6,10 @@ use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\TripSeat;
 use App\Models\TripSeatLeg;
+use App\Services\BookingService;
+use App\Services\PaymentService;
+use App\Services\SeatInventoryService;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
@@ -68,9 +72,9 @@ class ConcurrencyTest extends TestCase
 
         // Hold expires; B books the same seat with cash + confirmation.
         $this->travel(11)->minutes();
-        app(\App\Services\SeatInventoryService::class)->releaseExpiredHolds();
-        app(\App\Services\BookingService::class)->expireStaleBookings();
-        app(\App\Services\PaymentService::class)->expireStale();
+        app(SeatInventoryService::class)->releaseExpiredHolds();
+        app(BookingService::class)->expireStaleBookings();
+        app(PaymentService::class)->expireStale();
 
         $b = $this->publicPost($tenant, '/api/v1/public/bookings', $payload);
         $b->assertCreated();
@@ -96,13 +100,13 @@ class ConcurrencyTest extends TestCase
         config()->set('transithub.payment_gateways.ecocash.merchant_pin', 'P');
         config()->set('transithub.payment_gateways.ecocash.endpoint', 'http://localhost');
 
-        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response(['transactionReference' => 'ECX-TEST-1'], 200)]);
+        Http::fake(['*' => Http::response(['transactionReference' => 'ECX-TEST-1'], 200)]);
 
         $trip = $this->makeTrip($tenant);
         $booking = Booking::withoutTenantScope()->findOrFail(
             $this->publicPost($tenant, '/api/v1/public/bookings', $this->bookingPayload($trip, ['payment_method' => null]))->json('data.id')
         );
-        $payment = app(\App\Services\PaymentService::class)->initiate($booking, 'ecocash');
+        $payment = app(PaymentService::class)->initiate($booking, 'ecocash');
         $payment->update(['provider_ref' => 'ECX-TEST-1']);
 
         $payload = json_encode([
