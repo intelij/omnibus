@@ -45,9 +45,16 @@ export default function NewBookingPage() {
   };
 
   const setPaxCount = (n: number) => {
+    if (n < selected.length) {
+      // Spec: never silently discard selected seats — make the user confirm.
+      const ok = window.confirm(
+        `You currently have ${selected.length} seats selected. Reducing passengers to ${n} will remove ${selected.length - n} seat selection(s). Continue?`,
+      );
+      if (!ok) return;
+      setSelected((s) => s.slice(0, n));
+    }
     setPax(n);
     setPassengers((prev) => Array.from({ length: n }, (_, i) => prev[i] ?? { first: '', last: '', phone: '' }));
-    if (selected.length > n) setSelected((s) => s.slice(0, n));
   };
 
   const toggle = (seat: SeatCell) => setSelected((prev) =>

@@ -42,4 +42,27 @@ class LocationController extends Controller
 
         return response()->json(['data' => $location], 201);
     }
+
+    /** Edit fields or activate/deactivate a location (deactivated = not bookable). */
+    public function update(Request $request, Location $location)
+    {
+        abort_unless($request->user()->can('routes.create'), 403);
+
+        $data = $request->validate([
+            'name' => ['nullable', 'string', 'max:120'],
+            'type' => ['nullable', 'in:city,town'],
+            'province' => ['nullable', 'string', 'max:80'],
+            'is_active' => ['nullable', 'boolean'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
+        if (isset($data['name']) && $data['name'] !== $location->name) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
+        $location->update(array_filter($data, fn ($v) => ! is_null($v)));
+
+        return response()->json(['data' => $location->fresh()]);
+    }
 }

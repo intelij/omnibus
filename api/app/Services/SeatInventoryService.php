@@ -49,6 +49,7 @@ class SeatInventoryService
                     'label' => $seat->label,
                     'type' => $seat->type,
                     'position' => $seat->position,
+                    'side' => $seat->side,
                     'price_modifier' => $seat->price_modifier,
                     'state' => TripSeat::STATE_AVAILABLE,
                 ]);
@@ -113,6 +114,7 @@ class SeatInventoryService
                 'col' => $seat->col,
                 'type' => $seat->type,
                 'position' => $seat->position,
+                'side' => $seat->side,
                 'price_modifier' => (float) $seat->price_modifier,
                 'bookable' => $seat->isBookableType(),
                 'state' => $state,

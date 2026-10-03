@@ -156,6 +156,7 @@ class TripService
                     'tenant_id' => $trip->tenant_id, 'trip_id' => $trip->id, 'seat_id' => $seat->id,
                     'deck' => $seat->deck, 'row' => $seat->row, 'col' => $seat->col,
                     'label' => $seat->label, 'type' => $seat->type, 'position' => $seat->position,
+                    'side' => $seat->side,
                     'price_modifier' => $seat->price_modifier,
                 ]);
                 $legCount = max(1, $trip->route->stops->count() - 1);

@@ -25,7 +25,7 @@ class SeatLayoutSeat extends Model
 
     protected $fillable = [
         'tenant_id', 'seat_layout_id', 'deck', 'row', 'col', 'label',
-        'seat_number', 'type', 'position', 'price_modifier',
+        'seat_number', 'type', 'position', 'side', 'price_modifier',
         'is_bookable', 'attributes', 'sort_order',
     ];
 

@@ -20,7 +20,7 @@ class TripSeat extends Model
 
     protected $fillable = [
         'tenant_id', 'trip_id', 'seat_id', 'deck', 'row', 'col', 'label',
-        'type', 'position', 'price_modifier', 'state',
+        'type', 'position', 'side', 'price_modifier', 'state',
     ];
 
     protected function casts(): array

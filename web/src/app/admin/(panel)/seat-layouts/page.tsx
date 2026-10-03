@@ -20,7 +20,7 @@ export default function SeatLayoutsPage() {
   const [cells, setCells] = useState<DesignCell[]>([]);
   const [error, setError] = useState<string | null>(null);
   // ZW coach quick-generate config
-  const [gen, setGen] = useState({ rows: 11, left: 2, right: 2, rear: 5 });
+  const [gen, setGen] = useState({ rows: 11, left: 2, right: 2, rear: 5, labelStyle: 'row_letter' });
 
   const { data, isLoading } = useQuery({
     queryKey: ['layouts'],
@@ -49,6 +49,12 @@ export default function SeatLayoutsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['layouts'] }),
   });
 
+  const duplicate = useMutation({
+    mutationFn: (id: number) => api.post(`/seat-layouts/${id}/duplicate`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['layouts'] }),
+    onError: (e: unknown) => setError(errMsg(e, 'Duplicate failed')),
+  });
+
   /** ZW coach flow: create draft → server generates the seat cells. */
   const generate = useMutation({
     mutationFn: async () => {
@@ -58,9 +64,10 @@ export default function SeatLayoutsPage() {
       });
       return api.post(`/seat-layouts/${created.id}/generate`, {
         rows: gen.rows, left_seats: gen.left, right_seats: gen.right, rear_row_seats: gen.rear,
+        label_style: gen.labelStyle,
       });
     },
-    onSuccess: () => { setGenerating(false); setGen({ rows: 11, left: 2, right: 2, rear: 5 }); qc.invalidateQueries({ queryKey: ['layouts'] }); setError(null); },
+    onSuccess: () => { setGenerating(false); setGen({ rows: 11, left: 2, right: 2, rear: 5, labelStyle: 'row_letter' }); qc.invalidateQueries({ queryKey: ['layouts'] }); setError(null); },
     onError: (e: unknown) => setError(errMsg(e, 'Generation failed')),
   });
 
@@ -88,6 +95,14 @@ export default function SeatLayoutsPage() {
             <Input label="Rear row seats" type="number" min={0} max={10} value={gen.rear}
               onChange={(e) => setGen({ ...gen, rear: +e.target.value })} />
           </div>
+          <label className="mt-3 block sm:max-w-52">
+            <span className="mb-1 block text-sm font-medium text-ink-secondary">Numbering</span>
+            <select className="w-full rounded-lg border-0 bg-surface px-3 py-2.5 text-sm text-ink ring-1 ring-border-strong"
+              value={gen.labelStyle} onChange={(e) => setGen({ ...gen, labelStyle: e.target.value })}>
+              <option value="row_letter">Row + letter (1A 1B | 1D 1E)</option>
+              <option value="numeric">Sequential (1 2 3 4 …)</option>
+            </select>
+          </label>
           <p className="mt-3 text-sm text-ink-secondary">
             {gen.rows} row{gen.rows > 1 ? 's' : ''} × {gen.left}+{gen.right} = {gen.rows * (gen.left + gen.right)} seats
             {gen.rear > 0 && <> · rear row {gen.rear}</>} ·{' '}
@@ -144,6 +159,7 @@ export default function SeatLayoutsPage() {
             <Badge key="s" tone={statusTone(l.status)}>{l.status}</Badge>,
             <div key="a" className="flex gap-3">
               {l.status === 'draft' && <button className="text-sm font-medium text-brand hover:underline" onClick={() => publish.mutate(l.id)}>Publish</button>}
+              <button className="text-sm font-medium text-brand hover:underline" onClick={() => duplicate.mutate(l.id)}>Duplicate</button>
             </div>,
           ])}
         />

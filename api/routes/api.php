@@ -63,8 +63,10 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('seat-layouts', V1\SeatLayoutController::class);
         Route::post('seat-layouts/{seat_layout}/publish', [V1\SeatLayoutController::class, 'publish']);
         Route::post('seat-layouts/{seat_layout}/generate', [V1\SeatLayoutController::class, 'generate']);
+        Route::post('seat-layouts/{seat_layout}/duplicate', [V1\SeatLayoutController::class, 'duplicate']);
         Route::get('locations', [V1\Admin\LocationController::class, 'index']);
         Route::post('locations', [V1\Admin\LocationController::class, 'store']);
+        Route::patch('locations/{location}', [V1\Admin\LocationController::class, 'update']);
         Route::apiResource('routes', V1\RouteController::class);
         Route::apiResource('schedules', V1\ScheduleController::class);
         Route::post('schedules/{schedule}/generate-trips', [V1\ScheduleController::class, 'generateTrips']);

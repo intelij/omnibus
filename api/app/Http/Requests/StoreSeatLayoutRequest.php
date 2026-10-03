@@ -26,6 +26,7 @@ class StoreSeatLayoutRequest extends FormRequest
             'seats.*.label' => ['required', 'string', 'max:10', 'distinct'],
             'seats.*.type' => ['required', 'in:standard,premium,vip,disabled_access,staff,driver,toilet,kitchen,stairs,exit'],
             'seats.*.position' => ['nullable', 'in:window,aisle,middle,none'],
+            'seats.*.side' => ['nullable', 'in:left,right,center'],
             'seats.*.price_modifier' => ['nullable', 'numeric', 'min:0', 'max:9999'],
         ];
     }

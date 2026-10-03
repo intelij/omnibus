@@ -3,8 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, Paginated, errMsg } from '@/lib/api';
 import { DataTable, Modal } from '@/components/admin';
-import { Badge, Button, Input, PageHeader, Spinner, statusTone } from '@/components/ui';
-import { Plus, Trash2 } from 'lucide-react';
+import { Badge, Button, Card, Input, PageHeader, Spinner, statusTone } from '@/components/ui';
+import { MapPin, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface RouteRow {
@@ -17,6 +17,7 @@ export default function RoutesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locOpen, setLocOpen] = useState(false);
   const [form, setForm] = useState({ name: '', origin: '', destination: '', distance_km: '', duration_minutes: '', base_fare: '' });
   const [stops, setStops] = useState<{ name: string; offset_minutes: number }[]>([
     { name: '', offset_minutes: 0 }, { name: '', offset_minutes: 0 },
@@ -44,8 +45,11 @@ export default function RoutesPage() {
   return (
     <>
       <PageHeader title="Routes" subtitle="Origin → destination with stops and fares">
+        <Button variant="secondary" onClick={() => setLocOpen((o) => !o)}><MapPin className="h-4 w-4" /> Locations</Button>
         <Button onClick={() => { setOpen(true); setError(null); }}><Plus className="h-4 w-4" /> New route</Button>
       </PageHeader>
+
+      {locOpen && <LocationsCard />}
 
       {isLoading ? <Spinner /> : (
         <DataTable
@@ -100,5 +104,61 @@ export default function RoutesPage() {
         </div>
       </Modal>
     </>
+  );
+}
+
+interface LocRow { id: number; name: string; type: string; province: string | null; is_active: boolean }
+
+/** City/town dataset manager — shared ZW geography, add or deactivate. */
+function LocationsCard() {
+  const qc = useQueryClient();
+  const [name, setName] = useState('');
+  const [province, setProvince] = useState('');
+  const [type, setType] = useState('town');
+  const [error, setError] = useState<string | null>(null);
+
+  const { data } = useQuery({
+    queryKey: ['locations'],
+    queryFn: () => api.get<{ data: LocRow[] }>('/locations'),
+  });
+
+  const add = useMutation({
+    mutationFn: () => api.post('/locations', { name, type, province: province || undefined }),
+    onSuccess: () => { setName(''); setProvince(''); qc.invalidateQueries({ queryKey: ['locations'] }); setError(null); },
+    onError: (e: unknown) => setError(errMsg(e, 'Could not add location')),
+  });
+
+  const toggle = useMutation({
+    mutationFn: (loc: LocRow) => api.patch(`/locations/${loc.id}`, { is_active: !loc.is_active }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['locations'] }),
+  });
+
+  return (
+    <Card className="mb-6">
+      <h2 className="mb-3 font-semibold">Locations (cities & towns)</h2>
+      <div className="mb-4 grid gap-3 sm:grid-cols-4">
+        <Input label="Name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input label="Province" value={province} onChange={(e) => setProvince(e.target.value)} />
+        <label className="block">
+          <span className="mb-1 block text-sm font-medium text-ink-secondary">Type</span>
+          <select className="w-full rounded-lg border-0 bg-surface px-3 py-2.5 text-sm text-ink ring-1 ring-border-strong"
+            value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="town">Town</option>
+            <option value="city">City</option>
+          </select>
+        </label>
+        <div className="flex items-end"><Button onClick={() => add.mutate()} disabled={!name || add.isPending}>Add location</Button></div>
+      </div>
+      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      <div className="flex max-h-64 flex-wrap gap-2 overflow-auto">
+        {(data?.data ?? []).map((l) => (
+          <button key={l.id} onClick={() => toggle.mutate(l)}
+            title={`${l.province ?? ''} — click to ${l.is_active ? 'deactivate' : 'activate'}`}
+            className={`rounded-full px-3 py-1 text-xs font-medium ring-1 ${l.is_active ? 'bg-brand-soft text-brand ring-brand' : 'bg-slate-100 text-ink-faint ring-border line-through'}`}>
+            {l.name}
+          </button>
+        ))}
+      </div>
+    </Card>
   );
 }

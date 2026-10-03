@@ -13,7 +13,12 @@ const NON_SEAT: Record<string, { icon: React.ReactNode; label: string }> = {
 };
 
 function stateLabel(seat: SeatCell): string {
-  const parts = [`Seat ${seat.label}`, seat.state];
+  const parts = [
+    `Seat ${seat.label}`,
+    `row ${seat.row}`,
+    seat.side && seat.side !== 'center' ? `${seat.side} ${seat.position === 'none' ? 'seat' : seat.position}` : seat.position !== 'none' ? seat.position : null,
+    seat.state,
+  ].filter((p): p is string => !!p);
   if (seat.type === 'vip') parts.push('VIP');
   if (seat.type === 'premium') parts.push('Premium');
   if (seat.type === 'disabled_access') parts.push('Accessible');

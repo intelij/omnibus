@@ -42,6 +42,7 @@ class SeatLayoutGenerator
             throw ValidationException::withMessages(['config' => 'Invalid seating configuration.']);
         }
 
+        $labelStyle = $cfg['label_style'] ?? 'row_letter'; // row_letter | numeric
         $aisleCol = $left > 0 && $right > 0 ? $left + 1 : 0; // 0 = no aisle gap
         $cols = $left + $right + ($aisleCol ? 1 : 0);
         $totalRows = $rows + ($rear > 0 ? 1 : 0);
@@ -56,16 +57,22 @@ class SeatLayoutGenerator
             }
         }
 
+        $label = fn (int $row, int $col, int $n) => $labelStyle === 'numeric'
+            ? (string) $n
+            : $row.chr(64 + $col);
+
         $cells = [];
         $n = 0;
         for ($r = 1; $r <= $rows; $r++) {
             foreach ($seatCols as $c) {
+                $n++;
                 $cells[] = [
                     'deck' => $deck, 'row' => $r, 'col' => $c,
-                    'label' => $r.chr(64 + $c), // col index → letter (incl. aisle index)
+                    'label' => $label($r, $c, $n),
                     'type' => 'standard',
                     'position' => $this->position($c, $cols, $aisleCol),
-                    'seat_number' => ++$n,
+                    'side' => $aisleCol ? ($c < $aisleCol ? 'left' : 'right') : 'center',
+                    'seat_number' => $n,
                     'sort_order' => $n,
                 ];
             }
@@ -73,24 +80,28 @@ class SeatLayoutGenerator
 
         if ($rear > 0) {
             for ($c = 1; $c <= $rearCols && $c <= $cols; $c++) {
+                $n++;
                 $cells[] = [
                     'deck' => $deck, 'row' => $rows + 1, 'col' => $c,
-                    'label' => ($rows + 1).chr(64 + $c),
+                    'label' => $label($rows + 1, $c, $n),
                     'type' => 'standard',
                     'position' => $this->position($c, $cols, 0),
-                    'seat_number' => ++$n,
+                    'side' => $c === 1 || $c === $cols ? ($c === 1 ? 'left' : 'right') : 'center',
+                    'seat_number' => $n,
                     'sort_order' => $n,
                 ];
             }
             // rear_row_seats may exceed column count — extra seats appended as
             // additional columns so no seat is silently lost.
             for ($c = $cols + 1; $c <= $rear; $c++) {
+                $n++;
                 $cells[] = [
                     'deck' => $deck, 'row' => $rows + 1, 'col' => $c,
-                    'label' => ($rows + 1).chr(64 + $c),
+                    'label' => $label($rows + 1, $c, $n),
                     'type' => 'standard',
                     'position' => 'middle',
-                    'seat_number' => ++$n,
+                    'side' => 'center',
+                    'seat_number' => $n,
                     'sort_order' => $n,
                 ];
             }

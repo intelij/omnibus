@@ -105,6 +105,7 @@ export interface SeatCell {
   label: string;
   type: string;
   position: string;
+  side?: 'left' | 'right' | 'center' | null;
   price_modifier: number;
   state: 'available' | 'held' | 'booked' | 'unavailable';
 }

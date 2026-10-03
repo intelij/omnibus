@@ -10,6 +10,7 @@ use App\Services\SeatLayoutGenerator;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SeatLayoutController extends Controller
 {
@@ -92,6 +93,7 @@ class SeatLayoutController extends Controller
             'right_seats' => ['required', 'integer', 'min:0', 'max:4'],
             'rear_row_seats' => ['nullable', 'integer', 'min:0', 'max:10'],
             'deck' => ['nullable', 'integer', 'min:1', 'max:3'],
+            'label_style' => ['nullable', 'in:row_letter,numeric'],
         ]);
 
         $layout = app(SeatLayoutGenerator::class)->generate($seatLayout, $data);
@@ -103,6 +105,35 @@ class SeatLayoutController extends Controller
         ]);
 
         return response()->json($layout);
+    }
+
+    /**
+     * Clone a layout — the versioning path for reusing configurations.
+     * Templates are layouts; buses bind to whichever layout is current,
+     * and historical trips keep their materialised seat snapshot.
+     */
+    public function duplicate(SeatLayout $seatLayout)
+    {
+        $this->authorize('create', SeatLayout::class);
+
+        $copy = DB::transaction(function () use ($seatLayout) {
+            $copy = $seatLayout->replicate(['status']);
+            $copy->name = $seatLayout->name.' (copy)';
+            $copy->status = 'draft';
+            $copy->save();
+
+            foreach ($seatLayout->seats as $seat) {
+                $s = $seat->replicate(['seat_layout_id']);
+                $s->seat_layout_id = $copy->id;
+                $s->save();
+            }
+
+            return $copy;
+        });
+
+        Audit::record('seat_layout.duplicated', $copy);
+
+        return response()->json($copy->load('seats'), 201);
     }
 
     public function destroy(SeatLayout $seatLayout)
@@ -136,6 +167,15 @@ class SeatLayoutController extends Controller
 
     private function persistSeats(SeatLayout $layout, array $seats): void
     {
+        // Configuration integrity: every seat must sit inside the declared
+        // grid — a partially-generated layout can't be saved.
+        $bad = collect($seats)->first(fn ($s) => $s['row'] > $layout->rows || $s['col'] > $layout->cols);
+        if ($bad) {
+            throw ValidationException::withMessages([
+                'seats' => "Seat at row {$bad['row']}, col {$bad['col']} is outside the {$layout->rows}×{$layout->cols} grid.",
+            ]);
+        }
+
         $rows = collect($seats)->map(function ($seat, $i) use ($layout) {
             return [
                 'tenant_id' => $layout->tenant_id,
@@ -147,6 +187,7 @@ class SeatLayoutController extends Controller
                 'seat_number' => $seat['seat_number'] ?? null,
                 'type' => $seat['type'],
                 'position' => $seat['position'] ?? 'none',
+                'side' => $seat['side'] ?? null,
                 'price_modifier' => $seat['price_modifier'] ?? 0,
                 'is_bookable' => ! in_array($seat['type'], SeatLayoutSeat::NON_BOOKABLE_TYPES, true),
                 'attributes' => isset($seat['attributes']) ? json_encode($seat['attributes']) : null,

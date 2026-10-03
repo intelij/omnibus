@@ -26,10 +26,19 @@ class TripController extends Controller
             'dropoff' => ['required', 'integer', 'gt:boarding'],
         ]);
 
+        $map = $seats->seatMap($trip, (int) $data['boarding'], (int) $data['dropoff']);
+
         return response()->json([
             'trip_id' => $trip->id,
             'hold_minutes' => tenant()->bookingRule('seat_hold_minutes'),
-            'seats' => $seats->seatMap($trip, (int) $data['boarding'], (int) $data['dropoff']),
+            'seats' => $map,
+            // Mobile/Flutter convenience: seats pre-grouped by deck+row so
+            // clients render the physical layout without re-deriving it.
+            'seat_map' => [
+                'rows' => collect($map)->groupBy('row')->map(
+                    fn ($row, $n) => ['row' => $n, 'seats' => $row->values()]
+                )->values(),
+            ],
         ]);
     }
 }
