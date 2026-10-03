@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSeatLayoutRequest;
 use App\Models\SeatLayout;
 use App\Models\SeatLayoutSeat;
+use App\Services\SeatLayoutGenerator;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -75,6 +76,33 @@ class SeatLayoutController extends Controller
         Audit::record('seat_layout.updated', $seatLayout);
 
         return response()->json($seatLayout->load('seats'));
+    }
+
+    /**
+     * Generate seats from a ZW-style bus configuration (2+2 + rear row,
+     * 2+1, 1+1, 3+2 …). Draft layouts only — published layouts are frozen.
+     */
+    public function generate(Request $request, SeatLayout $seatLayout)
+    {
+        $this->authorize('update', $seatLayout);
+
+        $data = $request->validate([
+            'rows' => ['required', 'integer', 'min:1', 'max:40'],
+            'left_seats' => ['required', 'integer', 'min:0', 'max:4'],
+            'right_seats' => ['required', 'integer', 'min:0', 'max:4'],
+            'rear_row_seats' => ['nullable', 'integer', 'min:0', 'max:10'],
+            'deck' => ['nullable', 'integer', 'min:1', 'max:3'],
+        ]);
+
+        $layout = app(SeatLayoutGenerator::class)->generate($seatLayout, $data);
+
+        Audit::record('seat_layout.generated', $layout, [
+            'rows' => $data['rows'], 'left' => $data['left_seats'],
+            'right' => $data['right_seats'], 'rear' => $data['rear_row_seats'] ?? 0,
+            'capacity' => $layout->seats->count(),
+        ]);
+
+        return response()->json($layout);
     }
 
     public function destroy(SeatLayout $seatLayout)

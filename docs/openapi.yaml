@@ -86,6 +86,14 @@ paths:
       tags: [Public]
       summary: Search autocomplete endpoints (origins/destinations)
       responses: {'200': {description: Stop name lists}}
+  /public/locations:
+    get:
+      tags: [Public]
+      summary: Searchable location dataset (Zimbabwe cities/towns)
+      parameters:
+        - {name: q, in: query, schema: {type: string, maxLength: 60}}
+        - {name: limit, in: query, schema: {type: integer, maximum: 50}}
+      responses: {'200': {description: Matching active locations}}
   /public/trips/search:
     get:
       tags: [Public]
@@ -195,6 +203,25 @@ paths:
     get: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Layout with seats}}}
     patch: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Updated}}}
     delete: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Deleted}, '422': {description: In use}}}
+  /seat-layouts/{seat_layout}/generate:
+    post:
+      tags: [Admin]
+      summary: Generate ZW-style seat configuration (rows × left+right, rear row)
+      parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rows, left_seats, right_seats]
+              properties:
+                rows: {type: integer, minimum: 1, maximum: 40}
+                left_seats: {type: integer, minimum: 0, maximum: 4}
+                right_seats: {type: integer, minimum: 0, maximum: 4}
+                rear_row_seats: {type: integer, minimum: 0, maximum: 10}
+                deck: {type: integer, minimum: 1, maximum: 3}
+      responses: {'200': {description: Layout with generated seats}, '422': {description: Only draft layouts can be regenerated}}
   /seat-layouts/{seat_layout}/publish:
     post: {tags: [Fleet], security: [{sanctum: []}], parameters: [{name: seat_layout, in: path, required: true, schema: {type: integer}}], responses: {'200': {description: Published}}}
 

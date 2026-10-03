@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TripResource;
 use App\Services\TripSearchService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class SearchController extends Controller
 {
@@ -20,11 +21,17 @@ class SearchController extends Controller
     {
         $data = $request->validate([
             'from' => ['required', 'string', 'max:120'],
-            'to' => ['required', 'string', 'max:120'],
+            'to' => ['required', 'string', 'max:120', 'different:from'],
             'date' => ['required', 'date', 'after_or_equal:today'],
             'passengers' => ['nullable', 'integer', 'min:1', 'max:10'],
             'sort' => ['nullable', 'in:price,-price,departure,-departure,duration'],
         ]);
+
+        if (mb_strtolower(trim($data['from'])) === mb_strtolower(trim($data['to']))) {
+            throw ValidationException::withMessages([
+                'to' => 'Origin and destination must be different cities.',
+            ]);
+        }
 
         $results = $this->search->search(
             $data['from'], $data['to'], $data['date'], (int) ($data['passengers'] ?? 1),

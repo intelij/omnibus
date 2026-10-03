@@ -31,13 +31,21 @@ function TripPage() {
   });
 
   const [selected, setSelected] = useState<SeatCell[]>([]);
+  const [capNotice, setCapNotice] = useState(false);
 
   const toggle = (seat: SeatCell) => {
-    setSelected((prev) =>
-      prev.some((s) => s.id === seat.id)
-        ? prev.filter((s) => s.id !== seat.id)
-        : prev.length < passengers ? [...prev, seat] : [...prev.slice(1), seat],
-    );
+    setSelected((prev) => {
+      if (prev.some((s) => s.id === seat.id)) {
+        setCapNotice(false);
+        return prev.filter((s) => s.id !== seat.id);
+      }
+      if (prev.length >= passengers) {
+        setCapNotice(true); // spec: block the extra seat, don't silently swap
+        return prev;
+      }
+      setCapNotice(false);
+      return [...prev, seat];
+    });
   };
 
   const fareTotal = useMemo(
@@ -71,8 +79,16 @@ function TripPage() {
           <p className="mt-1 text-sm text-ink-faint">
             {boardingStop?.name} → {dropoffStop?.name} · {trip?.departure_at && new Date(trip.departure_at).toLocaleString()} · {passengers} passenger{passengers > 1 ? 's' : ''}
           </p>
+          <p className="mt-2 text-sm font-medium text-ink-secondary" role="status" aria-live="polite">
+            Select {passengers} seat{passengers > 1 ? 's' : ''} — Selected: {selected.length} / {passengers}
+          </p>
+          {capNotice && (
+            <p role="alert" className="mt-1 text-sm text-amber-700">
+              {passengers} seat{passengers > 1 ? 's' : ''} selected — deselect one or increase passengers to pick another.
+            </p>
+          )}
           <div className="mt-6">
-            {isLoading ? <Spinner /> : <SeatMap seats={seatData?.seats ?? []} selected={selected.map((s) => s.id)} onToggle={toggle} maxSeats={passengers} />}
+            {isLoading ? <Spinner /> : <SeatMap seats={seatData?.seats ?? []} selected={selected.map((s) => s.id)} onToggle={toggle} />}
           </div>
         </div>
 
@@ -104,6 +120,17 @@ function TripPage() {
           </Card>
         </aside>
       </div>
+
+      {/* Mobile sticky action bar — selection + CTA stays in reach. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface p-3 shadow-lg lg:hidden">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+          <span className="text-sm font-medium text-ink-secondary">Selected {selected.length} / {passengers}</span>
+          <Button onClick={proceed} disabled={selected.length !== 0 && selected.length !== passengers}>
+            {selected.length ? 'Continue' : 'Auto-allocate'}
+          </Button>
+        </div>
+      </div>
+      <div className="h-20 lg:hidden" aria-hidden />
     </PublicShell>
   );
 }

@@ -88,6 +88,7 @@ class RouteController extends Controller
             $route->stops()->create([
                 'tenant_id' => $route->tenant_id,
                 'name' => $stop['name'],
+                'location_id' => $stop['location_id'] ?? null,
                 'sequence' => $stop['sequence'],
                 'can_board' => $stop['can_board'] ?? true,
                 'can_alight' => $stop['can_alight'] ?? true,

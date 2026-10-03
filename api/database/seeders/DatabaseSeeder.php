@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(ZimbabweLocationsSeeder::class);
 
         // ── Platform administrator (no tenant) ─────────────────────
         $platform = User::create([

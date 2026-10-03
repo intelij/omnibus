@@ -23,6 +23,7 @@ class StoreRouteRequest extends FormRequest
             'status' => ['sometimes', 'in:active,inactive'],
             'stops' => ['required', 'array', 'min:2'],
             'stops.*.name' => ['required', 'string', 'max:120'],
+            'stops.*.location_id' => ['nullable', 'integer', 'exists:locations,id'],
             'stops.*.sequence' => ['required', 'integer', 'min:0', 'distinct'],
             'stops.*.can_board' => ['boolean'],
             'stops.*.can_alight' => ['boolean'],

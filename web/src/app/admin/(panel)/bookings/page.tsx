@@ -19,7 +19,12 @@ export default function BookingsPage() {
 
   return (
     <>
-      <PageHeader title="Bookings" subtitle="Reservations across all sales channels" />
+      <PageHeader title="Bookings" subtitle="Reservations across all sales channels">
+        <Link href="/admin/bookings/new"
+          className="rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-hover">
+          New booking
+        </Link>
+      </PageHeader>
       <FilterBar>
         <input className="w-64 rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" placeholder="Search reference, name, email…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="Search bookings" />
         <select className="rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status">

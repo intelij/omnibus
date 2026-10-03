@@ -88,3 +88,18 @@ known gaps to close before/after go-live.
 10. ~~Data privacy~~ — **done** (retention sweep, PII export + anonymize endpoints, log masking).
 
 See `docs/PRODUCTION_READINESS_REPORT.md` for the full audit.
+
+## Zimbabwe rollout additions (2026-10-03, second pass)
+
+- Canonical `locations` dataset (33 ZW cities/towns, slug-unique, extensible
+  via admin) + `GET /public/locations?q=` server-side search.
+- From/To → accessible combobox (keyboard nav, clear, same-city prevention);
+  same origin/destination rejected client + server side.
+- Passenger count → numeric stepper bound to tenant `max_seats_per_booking`.
+- `SeatLayoutGenerator` — config-driven ZW layouts (2+2 + rear 5 = 49,
+  2+1, 1+1, 3+2), stable `{row}{col-letter}` labels, draft-only regen.
+- Admin: "ZW coach config" generator panel + agent multi-passenger booking
+  (`/admin/bookings/new`) with live seat map.
+- Trip snapshots unchanged — published layouts and `trip_seats` keep
+  existing bookings stable across bus re-config.
+- New tests: `tests/Feature/ZwBookingFlowTest.php` (10 tests, 33 assertions).

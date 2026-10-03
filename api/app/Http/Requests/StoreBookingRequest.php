@@ -24,11 +24,11 @@ class StoreBookingRequest extends FormRequest
             'promotion_code' => ['nullable', 'string', 'max:40'],
             'seat_preference' => ['nullable', 'in:together,front,rear,window,aisle,any'],
             'trip_seat_ids' => ['nullable', 'array'],
-            'trip_seat_ids.*' => ['integer', 'exists:trip_seats,id'],
+            'trip_seat_ids.*' => ['integer', 'distinct', 'exists:trip_seats,id'],
             'contact_name' => ['required', 'string', 'max:120'],
             'contact_email' => ['nullable', 'email', 'max:190'],
             'contact_phone' => ['required', 'string', 'max:30'],
-            'passengers' => ['required', 'array', 'min:1', 'max:10'],
+            'passengers' => ['required', 'array', 'min:1', 'max:'.$this->maxPassengers()],
             'passengers.*.first_name' => ['required', 'string', 'max:80'],
             'passengers.*.last_name' => ['required', 'string', 'max:80'],
             'passengers.*.email' => ['nullable', 'email', 'max:190'],
@@ -40,5 +40,13 @@ class StoreBookingRequest extends FormRequest
             'passengers.*.emergency_contact' => ['nullable', 'string', 'max:60'],
             'passengers.*.special_requirements' => ['nullable', 'string', 'max:300'],
         ];
+    }
+
+    /** Tenant-configurable cap — never hard-coded to 10. */
+    private function maxPassengers(): int
+    {
+        $tenant = $this->attributes->get('tenant') ?? tenant();
+
+        return (int) ($tenant?->bookingRule('max_seats_per_booking', 10) ?? 10);
     }
 }

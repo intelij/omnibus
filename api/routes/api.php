@@ -27,6 +27,8 @@ Route::prefix('v1')->group(function () {
     // ─── Public booking surface (tenant resolved from host) ────────
     Route::prefix('public')->middleware(['public.tenant', 'throttle:public'])->group(function () {
         Route::get('tenant', [V1\Public\TenantController::class, 'show']);
+        Route::get('locations', [V1\Public\LocationController::class, 'index'])
+            ->middleware('throttle:public-search');
         Route::get('endpoints', [V1\Public\SearchController::class, 'endpoints']);
         Route::get('trips/search', [V1\Public\SearchController::class, 'search'])
             ->middleware('throttle:public-search');
@@ -60,6 +62,9 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('buses', V1\BusController::class);
         Route::apiResource('seat-layouts', V1\SeatLayoutController::class);
         Route::post('seat-layouts/{seat_layout}/publish', [V1\SeatLayoutController::class, 'publish']);
+        Route::post('seat-layouts/{seat_layout}/generate', [V1\SeatLayoutController::class, 'generate']);
+        Route::get('locations', [V1\Admin\LocationController::class, 'index']);
+        Route::post('locations', [V1\Admin\LocationController::class, 'store']);
         Route::apiResource('routes', V1\RouteController::class);
         Route::apiResource('schedules', V1\ScheduleController::class);
         Route::post('schedules/{schedule}/generate-trips', [V1\ScheduleController::class, 'generateTrips']);
