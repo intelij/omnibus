@@ -21,11 +21,15 @@ bus-industry equivalent of an airline reservation system.
 ## Quick start
 
 ```bash
+# Database — MySQL 8+ (Docker):  docker compose up -d mysql
+# or point .env at any running MySQL instance (see docs/MYSQL_SETUP.md)
+
 # API (PHP 8.3+, Composer)
 cd api
 composer install
 cp .env.example .env && php artisan key:generate
-php artisan migrate:fresh --seed
+php artisan migrate:fresh --seed   # or: php artisan transithub:seed-demo
+php artisan transithub:health      # sanity-check everything
 php artisan serve --port=8891
 
 # Web (Node 22+)
@@ -39,24 +43,22 @@ npm run dev                  # http://localhost:3000 (set -p 3100 to match docs)
 
 | Account | Email | Role |
 |---|---|---|
-| Platform | `admin@transithub.test` | platform_super_admin |
-| Demo Transport owner | `owner@demo-transport.example.com` | tenant_owner |
-| Demo admin | `admin@demo-transport.example.com` | tenant_admin |
-| Demo agent | `agent@demo-transport.example.com` | booking_agent |
-| Demo finance | `finance@demo-transport.example.com` | finance_officer |
-| Demo support | `support@demo-transport.example.com` | support_agent |
-| Zambezi Coaches owner | `owner@zambezi-coaches.example.com` | tenant_owner (isolation demo) |
+| Platform admin | `admin@transithub.test` | platform_super_admin |
+| Zimbabwe Express admin | `admin@zimbabweexpress.test` | tenant_admin |
+| Bulawayo Star admin | `admin@bulawayostar.test` | tenant_admin |
 
-Password for all seeded users: `Password#2026` (platform: `Platform#2026`).
+Each tenant also seeds `owner@`, `agent@`, `finance@`, `support@` on the same
+domain pattern. Password for **all** seeded users: `password` (development
+only — see docs/DEMO_DATA.md).
 
-For local public-site requests pass `?tenant=demo-transport` or the `X-Tenant`
-header (dev fallback — production resolves tenants by host/subdomain).
+For local public-site requests pass `?tenant=zimbabwe-express` or the
+`X-Tenant` header (dev fallback — production resolves tenants by host/subdomain).
 
 ## Useful commands
 
 ```bash
 # API
-php artisan test                 # full suite (sqlite :memory:)
+php artisan test                 # full suite (sqlite :memory:; run on mysql via docs/MYSQL_SETUP.md)
 ./vendor/bin/pint                # format
 ./vendor/bin/phpstan analyse     # static analysis (level 4)
 php artisan schedule:work        # hold/payment expiry, trip generation, status transitions
@@ -88,10 +90,13 @@ docs/           architecture, security, API, ops & audit documents
 - [docs/SECURITY.md](docs/SECURITY.md) — threat model & controls
 - [docs/OPERATIONS.md](docs/OPERATIONS.md) — runbook
 - [docs/openapi.yaml](docs/openapi.yaml) — API contract
+- [docs/MYSQL_SETUP.md](docs/MYSQL_SETUP.md) — database setup & Docker
+- [docs/DEMO_DATA.md](docs/DEMO_DATA.md) — seeded dataset & credentials
+- [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) — login flow & roles
 
 ## Production notes
 
-- Swap `DB_CONNECTION` to `pgsql`, `CACHE_STORE`/`QUEUE_CONNECTION` to `redis`.
+- `DB_CONNECTION=mysql` is the default; set `CACHE_STORE`/`QUEUE_CONNECTION` to `redis` in production.
 - Fill `PAYNOW_*`, `ECOCASH_*`, `INBUCKS_*` env vars — gateways self-disable when unconfigured.
 - Point web `NEXT_PUBLIC_API_URL` at the API host; configure `APP_DOMAIN` for
   tenant subdomain resolution.

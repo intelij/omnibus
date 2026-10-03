@@ -175,3 +175,31 @@ hooks are the documented extension point (`docs/PRODUCTION_READINESS.md`).
 | Paynow | ✅ | `PAYNOW_INTEGRATION_ID/KEY/RESULT_URL/RETURN_URL/TEST_MODE=false` |
 | Secrets store | recommended | env today → migrate to AWS Secrets Manager/Vault (see report doc) |
 | Backups | ✅ | `docs/BACKUP_AND_RESTORE.md` — pg_dump + WAL + storage sync, quarterly restore drill |
+
+## 2026-10-03 — MySQL migration + login fix + full demo dataset
+
+**Admin login bug — root cause found & fixed:** seeded users had
+undocumented passwords (`Platform#2026`/`Password#2026`) that no docs or
+UI referenced — every login with `password` failed despite an active
+user row. `DatabaseSeeder` now assigns the deterministic demo password
+(`password`), sets `email_verified_at`, uses `updateOrCreate`
+(idempotent), and refuses to run in production without an explicit
+`SEED_DEMO_IN_PRODUCTION=1` override.
+
+**MySQL is now the primary DB** (was pgsql): `.env`/`.env.example` →
+mysql, `docker-compose.yml` added (mysql:8.4 + redis). Compat sweep
+clean — no pgsql-specific SQL existed (all raw SQL is portable:
+lower(), count/having, 1=0). **Concurrency re-verified on MySQL 8.0.33:**
+8-way parallel same-seat race → exactly one winner (`FOR UPDATE` holds).
+Full suite: **67 tests / 231 assertions pass on MySQL** (also on sqlite
+memory).
+
+**Demo dataset** (docs/DEMO_DATA.md): platform admin + 2 operators
+(Zimbabwe Express, Bulawayo Star) with all staff roles, 33 ZW locations,
+14 routes, ~58 trips across today→+7 days, 4 buses on generator-built
+layouts (49/45/49/30 seats), bookings in confirmed/pending/cancelled
+states, matching payments, tenant-scoped promos (WELCOME10/BULAWAYO5).
+
+**New commands:** `transithub:seed-demo` (destructive-reset demo setup)
+and `transithub:health` (env+db+seed+paynow diagnostics, exit 1 on
+failure).

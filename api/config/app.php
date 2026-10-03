@@ -2,6 +2,8 @@
 
 return [
 
+    'demo_seeding' => env('SEED_DEMO_IN_PRODUCTION', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Name
