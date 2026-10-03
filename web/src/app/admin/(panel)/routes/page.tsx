@@ -51,7 +51,7 @@ export default function RoutesPage() {
         <DataTable
           head={['Route', 'Stops', 'Distance', 'Duration', 'Base fare', 'Status']}
           rows={(data?.data ?? []).map((r) => [
-            <span key="n" className="font-medium">{r.name}<br /><span className="text-xs font-normal text-slate-400">{r.origin} → {r.destination}</span></span>,
+            <span key="n" className="font-medium">{r.name}<br /><span className="text-xs font-normal text-ink-faint">{r.origin} → {r.destination}</span></span>,
             r.stops_count ?? '—',
             r.distance_km ? `${r.distance_km} km` : '—',
             r.duration_minutes ? `${Math.floor(r.duration_minutes / 60)}h ${r.duration_minutes % 60}m` : '—',
@@ -75,18 +75,18 @@ export default function RoutesPage() {
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium">Stops (in order)</span>
-              <button type="button" className="text-sm text-teal-700" onClick={() => setStops([...stops, { name: '', offset_minutes: 0 }])}>+ Add stop</button>
+              <button type="button" className="text-sm text-brand" onClick={() => setStops([...stops, { name: '', offset_minutes: 0 }])}>+ Add stop</button>
             </div>
             <div className="space-y-2">
               {stops.map((s, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="w-5 text-xs text-slate-400">{i + 1}</span>
-                  <input className="flex-1 rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-slate-300" placeholder="Stop name" value={s.name}
+                  <span className="w-5 text-xs text-ink-faint">{i + 1}</span>
+                  <input className="flex-1 rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-border-strong" placeholder="Stop name" value={s.name}
                     onChange={(e) => setStops(stops.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} />
-                  <input className="w-24 rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-slate-300" placeholder="+min" type="number" min={0} value={s.offset_minutes}
+                  <input className="w-24 rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-border-strong" placeholder="+min" type="number" min={0} value={s.offset_minutes}
                     onChange={(e) => setStops(stops.map((x, j) => j === i ? { ...x, offset_minutes: +e.target.value } : x))} title="Minutes after departure" />
                   {stops.length > 2 && (
-                    <button type="button" onClick={() => setStops(stops.filter((_, j) => j !== i))} className="p-1 text-slate-400 hover:text-red-600" aria-label="Remove stop">
+                    <button type="button" onClick={() => setStops(stops.filter((_, j) => j !== i))} className="p-1 text-ink-faint hover:text-[var(--danger)]" aria-label="Remove stop">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   )}

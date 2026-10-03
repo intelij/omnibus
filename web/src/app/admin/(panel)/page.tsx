@@ -73,15 +73,15 @@ function Dashboard() {
       {ops && (
         <Card className="mt-6">
           <h2 className="mb-3 font-semibold">Upcoming departures</h2>
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="divide-y divide-border text-sm">
             {ops.upcoming_departures.map((t) => (
               <li key={t.id} className="flex items-center justify-between py-2">
                 <span>Trip #{t.id}</span>
-                <span className="text-slate-500">{new Date(t.departure_at).toLocaleString()}</span>
+                <span className="text-ink-faint">{new Date(t.departure_at).toLocaleString()}</span>
                 <Badge tone="blue">{t.status}</Badge>
               </li>
             ))}
-            {ops.upcoming_departures.length === 0 && <li className="py-4 text-slate-400">No upcoming departures.</li>}
+            {ops.upcoming_departures.length === 0 && <li className="py-4 text-ink-faint">No upcoming departures.</li>}
           </ul>
         </Card>
       )}
@@ -93,10 +93,10 @@ function Stat({ icon: Icon, label, value }: { icon: React.ComponentType<{ classN
   return (
     <Card>
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-teal-50 p-2.5"><Icon className="h-5 w-5 text-teal-700" /></div>
+        <div className="rounded-lg bg-brand-soft p-2.5"><Icon className="h-5 w-5 text-brand" /></div>
         <div>
           <p className="text-2xl font-bold">{value}</p>
-          <p className="text-xs text-slate-500">{label}</p>
+          <p className="text-xs text-ink-faint">{label}</p>
         </div>
       </div>
     </Card>

@@ -52,7 +52,7 @@ export default function PromotionsPage() {
             `${p.redemptions_count ?? 0}${p.usage_limit ? ` / ${p.usage_limit}` : ''}`,
             p.ends_at ? new Date(p.ends_at).toLocaleDateString() : '∞',
             <Badge key="s" tone={statusTone(p.status)}>{p.status}</Badge>,
-            <button key="a" className="text-sm text-teal-700 hover:underline" onClick={() => pause.mutate(p)}>
+            <button key="a" className="text-sm text-brand hover:underline" onClick={() => pause.mutate(p)}>
               {p.status === 'active' ? 'Pause' : 'Activate'}
             </button>,
           ])}

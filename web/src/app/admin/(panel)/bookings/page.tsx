@@ -21,8 +21,8 @@ export default function BookingsPage() {
     <>
       <PageHeader title="Bookings" subtitle="Reservations across all sales channels" />
       <FilterBar>
-        <input className="w-64 rounded-lg border-0 bg-white px-3 py-2 text-sm ring-1 ring-slate-300" placeholder="Search reference, name, email…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="Search bookings" />
-        <select className="rounded-lg border-0 bg-white px-3 py-2 text-sm ring-1 ring-slate-300" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status">
+        <input className="w-64 rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" placeholder="Search reference, name, email…" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} aria-label="Search bookings" />
+        <select className="rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status">
           <option value="">All</option>
           {['held', 'pending_payment', 'confirmed', 'cancelled', 'expired', 'completed', 'refunded'].map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
         </select>
@@ -39,7 +39,7 @@ export default function BookingsPage() {
               b.trip?.route ? `${b.trip.route.origin}→${b.trip.route.destination}` : '—',
               `${b.currency} ${b.total.toFixed(2)}`,
               <Badge key="s" tone={statusTone(b.status)}>{b.status.replace('_', ' ')}</Badge>,
-              <Link key="a" href={`/admin/bookings/${b.id}`} className="text-sm font-medium text-teal-700 hover:underline">Open</Link>,
+              <Link key="a" href={`/admin/bookings/${b.id}`} className="text-sm font-medium text-brand hover:underline">Open</Link>,
             ])}
           />
           <Pagination meta={data?.meta} onPage={setPage} />

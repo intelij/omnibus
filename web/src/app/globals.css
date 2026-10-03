@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
+/*
+ * TransitHub design tokens.
+ * Semantic layer over the palette — components should prefer these so tenant
+ * branding and future theming can re-skin the app without touching classes.
+ * Light theme only for now; contrast targets WCAG 2.2 AA (4.5:1 body text).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;          /* slate-50  */
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;       /* slate-100 */
+  --border: #e2e8f0;              /* slate-200 */
+  --border-strong: #cbd5e1;       /* slate-300 */
+
+  --ink: #0f172a;                 /* slate-900 — 16.4:1 */
+  --ink-secondary: #334155;       /* slate-700 — 9.7:1  */
+  --ink-muted: #475569;           /* slate-600 — 6.9:1  */
+  --ink-faint: #64748b;           /* slate-500 — 4.6:1 (AA floor) */
+
+  --brand: #0f766e;               /* teal-700  — overridable by tenant branding */
+  --brand-hover: #115e59;         /* teal-800  */
+  --brand-soft: #f0fdfa;          /* teal-50   */
+  --brand-ink: #134e4a;           /* teal-900 text on soft */
+
+  --danger: #dc2626;              /* red-600   */
+  --danger-hover: #b91c1c;
+  --success: #059669;             /* emerald-600 */
+  --warning-bg: #fef3c7;          /* amber-100 */
+  --warning-ink: #92400e;         /* amber-800 */
+  --info-bg: #e0f2fe;             /* sky-100   */
+  --info-ink: #075985;            /* sky-800   */
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-foreground: var(--ink);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-ink: var(--brand-ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Accessible focus ring — consistent across interactive elements. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip link — visually hidden until focused. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.875rem;
+  border-radius: 0 0 0.5rem 0;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* Seat map — non-colour differentiation for state (stripes = occupied). */
+.seat-occupied {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(15, 23, 42, 0.12) 3px,
+    rgba(15, 23, 42, 0.12) 6px
+  );
+}
+.seat-held {
+  border-style: dashed !important;
+}
+
+@media (forced-colors: active) {
+  .seat-occupied { background-image: none; }
 }

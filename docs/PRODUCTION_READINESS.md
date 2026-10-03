@@ -57,9 +57,9 @@ known gaps to close before/after go-live.
 | Append-only audit log (create-only in app layer) | done |
 | Ticket QR payloads — random token, not sequential | done |
 | Guest booking access needs ref + contact key | done |
-| Rate limiting | todo — add `throttle` per-route in production |
-| HTTPS enforcement / HSTS | todo — deploy layer |
-| Secrets management | todo — env vars; move to vault/KMS in production |
+| Rate limiting — named per-endpoint limiters (see routes/api.php + AppServiceProvider) | done |
+| HTTPS enforcement / HSTS (`FORCE_HTTPS`/`FORCE_HSTS` env-gated) | done — deploy-layer TLS still required |
+| Secrets management — env vars, never logged/committed (Mask); vault migration documented | done (env) |
 
 ## Data & infra
 
@@ -70,15 +70,21 @@ known gaps to close before/after go-live.
 - Indexes: tenant_id + status + date indexes on hot paths; unique constraints
   (booking reference, trip seat legs, idempotency keys, promotion codes, webhook events).
 
-## Known gaps (pre-launch hardening)
+## Hardening release (2026-10-03) — status of former gaps
 
-1. **Per-route rate limiting** — esp. `/public/*` and webhooks.
-2. **Request logging & metrics** — request IDs, Prometheus/OTel hooks, slow-query alerts.
-3. **Queue retry/dead-letter** — failed-job alerts; webhook redelivery jobs.
-4. **Outbox for notifications** — ticket/confirmation mails currently fire inline.
-5. **DB-level pessimistic lock verification on Postgres** — SQLite locks are no-ops.
-6. **Backup/restore runbook** + audit-log retention/export policy.
-7. **Pen test** — IDOR sweep across admin routes, tenant-scope fuzz, seat-race load test.
-8. **i18n/a11y pass** — WCAG audit on passenger flow; translations for public copy.
-9. **Payment provider sandbox verification** — Paynow/EcoCash/InBucks sandbox keys + webhook IP allowlists.
-10. **Data privacy** — passenger-data retention policy, PII export/delete endpoints.
+1. ~~Per-route rate limiting~~ — **done** (named limiters, live-verified 429s).
+2. ~~Request logging~~ — **done** (X-Request-ID + shared log context + audit request_id).
+   Metrics/OTel backend wiring remains a deploy-time hook.
+3. ~~Queue retry/dead-letter~~ — **done** (tries/backoff/failed() audit on all jobs).
+4. ~~Outbox~~ — **done** (`QUEUE_AFTER_COMMIT` + queued notifications; domain events persist in-tx).
+5. ~~Postgres lock verification~~ — **done** (suite green on PG 15; 8-way seat race = 1 winner).
+6. ~~Backup/restore~~ — **done** (`docs/BACKUP_AND_RESTORE.md` incl. audit retention).
+7. **Pen test** — **partial**: security test matrix documented (`docs/SECURITY_TEST_MATRIX.md`),
+   automated IDOR/RBAC/webhook/race coverage; external scanner + Paynow IP allowlist remain.
+8. **i18n/a11y** — **partial**: WCAG fixes done (contrast, focus, seat states, skip links,
+   labels); i18n architecture ready (`tenant.locale`) but copy not yet extracted.
+9. **Payment sandbox verification** — **open**: Paynow wiring complete + hash-verified;
+   one live sandbox round-trip still required before launch.
+10. ~~Data privacy~~ — **done** (retention sweep, PII export + anonymize endpoints, log masking).
+
+See `docs/PRODUCTION_READINESS_REPORT.md` for the full audit.

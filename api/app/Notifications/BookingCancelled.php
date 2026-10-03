@@ -12,6 +12,13 @@ class BookingCancelled extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [30, 120, 600];
+    }
+
     public function __construct(public Booking $booking, public ?float $refundAmount = null) {}
 
     public function via(object $notifiable): array

@@ -28,9 +28,9 @@ function Results() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{from} → {to}</h1>
-          <p className="text-sm text-slate-500">{new Date(date).toDateString()} · {passengers} passenger{passengers > 1 ? 's' : ''}</p>
+          <p className="text-sm text-ink-faint">{new Date(date).toDateString()} · {passengers} passenger{passengers > 1 ? 's' : ''}</p>
         </div>
-        <select className="rounded-lg border-0 bg-white px-3 py-2 text-sm ring-1 ring-slate-300" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort results">
+        <select className="rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort results">
           <option value="departure">Earliest departure</option>
           <option value="price">Lowest price</option>
           <option value="duration">Shortest trip</option>
@@ -50,22 +50,22 @@ function Results() {
               <div className="flex items-center gap-6">
                 <div>
                   <p className="text-lg font-bold">{new Date(r.trip.departure_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                  <p className="text-sm text-slate-500">{r.boarding_stop.name}</p>
+                  <p className="text-sm text-ink-faint">{r.boarding_stop.name}</p>
                 </div>
                 <ArrowRight className="h-5 w-5 text-slate-300" aria-hidden />
                 <div>
                   <p className="text-lg font-bold">{r.trip.arrival_estimate_at ? new Date(r.trip.arrival_estimate_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</p>
-                  <p className="text-sm text-slate-500">{r.dropoff_stop.name}</p>
+                  <p className="text-sm text-ink-faint">{r.dropoff_stop.name}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-slate-500">
+              <div className="flex items-center gap-2 text-sm text-ink-faint">
                 <Clock className="h-4 w-4" aria-hidden />
                 {r.trip.route?.duration_minutes ? `${Math.floor(r.trip.route.duration_minutes / 60)}h ${r.trip.route.duration_minutes % 60}m` : ''}
                 {r.trip.bus?.amenities?.includes('wifi') && <Wifi className="h-4 w-4" aria-label="Wi-Fi" />}
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold">{r.trip.currency ?? 'USD'} {r.fare}</p>
-                <p className="flex items-center justify-end gap-1 text-sm text-slate-500">
+                <p className="flex items-center justify-end gap-1 text-sm text-ink-faint">
                   <Armchair className="h-4 w-4" /> {r.available_seats} seats left
                 </p>
                 <Badge tone={r.bookable ? 'green' : 'red'}>{r.bookable ? 'Available' : 'Sold out'}</Badge>

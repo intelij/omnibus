@@ -52,9 +52,9 @@ export default function SettingsPage() {
           <div className="space-y-4">
             {(['primary_color', 'secondary_color', 'accent_color'] as const).map((k) => (
               <div key={k} className="flex items-center gap-3">
-                <input type="color" className="h-10 w-14 cursor-pointer rounded ring-1 ring-slate-200" value={brand[k] ?? '#0f766e'} onChange={(e) => setBrand({ ...brand, [k]: e.target.value })} aria-label={k.replace('_', ' ')} />
+                <input type="color" className="h-10 w-14 cursor-pointer rounded ring-1 ring-border" value={brand[k] ?? '#0f766e'} onChange={(e) => setBrand({ ...brand, [k]: e.target.value })} aria-label={k.replace('_', ' ')} />
                 <span className="text-sm capitalize">{k.replace('_', ' ')}</span>
-                <code className="ml-auto text-xs text-slate-400">{brand[k]}</code>
+                <code className="ml-auto text-xs text-ink-faint">{brand[k]}</code>
               </div>
             ))}
             <Input label="Header text" value={brand.header_text ?? ''} onChange={(e) => setBrand({ ...brand, header_text: e.target.value })} />
@@ -67,8 +67,8 @@ export default function SettingsPage() {
           <h2 className="mb-4 font-semibold">Payment methods</h2>
           <div className="space-y-2">
             {data.available_gateways.map((g) => (
-              <label key={g.key} className="flex items-center gap-3 rounded-lg p-3 ring-1 ring-slate-200">
-                <input type="checkbox" className="h-4 w-4 accent-teal-700" checked={methods.includes(g.key)}
+              <label key={g.key} className="flex items-center gap-3 rounded-lg p-3 ring-1 ring-border">
+                <input type="checkbox" className="h-4 w-4 accent-brand" checked={methods.includes(g.key)}
                   onChange={(e) => setMethods(e.target.checked ? [...methods, g.key] : methods.filter((m) => m !== g.key))} />
                 <span className="flex-1 text-sm font-medium">{g.label}</span>
                 {!g.available && g.key !== 'cash' && <span className="text-xs text-amber-600">credentials not configured</span>}
@@ -92,16 +92,16 @@ export default function SettingsPage() {
               {(rules.cancellation_policy ?? []).map((w, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <span>≥</span>
-                  <input type="number" className="w-20 rounded-lg border-0 px-2 py-1.5 ring-1 ring-slate-300" value={w.min_hours_before}
+                  <input type="number" className="w-20 rounded-lg border-0 px-2 py-1.5 ring-1 ring-border-strong" value={w.min_hours_before}
                     onChange={(e) => setRules({ ...rules, cancellation_policy: rules.cancellation_policy!.map((x, j) => j === i ? { ...x, min_hours_before: +e.target.value } : x) })} aria-label="Hours before departure" />
                   <span>hours before departure → refund</span>
-                  <input type="number" min={0} max={100} className="w-20 rounded-lg border-0 px-2 py-1.5 ring-1 ring-slate-300" value={w.percent}
+                  <input type="number" min={0} max={100} className="w-20 rounded-lg border-0 px-2 py-1.5 ring-1 ring-border-strong" value={w.percent}
                     onChange={(e) => setRules({ ...rules, cancellation_policy: rules.cancellation_policy!.map((x, j) => j === i ? { ...x, percent: +e.target.value } : x) })} aria-label="Refund percent" />
                   <span>%</span>
                   <button type="button" className="text-red-500" onClick={() => setRules({ ...rules, cancellation_policy: rules.cancellation_policy!.filter((_, j) => j !== i) })}>Remove</button>
                 </div>
               ))}
-              <button type="button" className="text-sm text-teal-700" onClick={() => setRules({ ...rules, cancellation_policy: [...(rules.cancellation_policy ?? []), { min_hours_before: 0, percent: 0 }] })}>+ Add tier</button>
+              <button type="button" className="text-sm text-brand" onClick={() => setRules({ ...rules, cancellation_policy: [...(rules.cancellation_policy ?? []), { min_hours_before: 0, percent: 0 }] })}>+ Add tier</button>
             </div>
           </div>
           <Button className="mt-4" onClick={() => saveRules.mutate()} disabled={saveRules.isPending}>Save rules</Button>

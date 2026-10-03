@@ -29,6 +29,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -52,8 +53,25 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Ticket::class, TicketPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
 
+        // Production HTTPS: once APP_URL is https:// and FORCE_HTTPS=true,
+        // all generated URLs (webhook resulturls, ticket links) use https and
+        // insecure requests are redirected by the edge proxy. Locally a
+        // no-op so dev on http://localhost keeps working.
+        if (config('transithub.force_https') && app()->isProduction()) {
+            URL::forceHttps();
+        }
+
+        // Named limiters — tuned per endpoint risk, not one blanket cap.
         RateLimiter::for('auth', fn (Request $r) => Limit::perMinute(5)->by(($r->input('email') ?? '').'|'.$r->ip()));
+        RateLimiter::for('password-reset', fn (Request $r) => Limit::perMinute(5)->by(($r->input('email') ?? '').'|'.$r->ip()));
         RateLimiter::for('public', fn (Request $r) => Limit::perMinute(60)->by($r->ip()));
+        RateLimiter::for('public-search', fn (Request $r) => Limit::perMinute(60)->by($r->ip()));
         RateLimiter::for('bookings', fn (Request $r) => Limit::perMinute(20)->by($r->ip()));
+        RateLimiter::for('payment-initiation', fn (Request $r) => Limit::perMinute(10)->by($r->ip()));
+        RateLimiter::for('promo-validation', fn (Request $r) => Limit::perMinute(30)->by($r->ip()));
+        // Provider callbacks come in bursts and retries — generous cap;
+        // safety comes from signature verification + event dedup, not throttling.
+        RateLimiter::for('webhook', fn (Request $r) => Limit::perMinute(120)->by($r->ip()));
+        RateLimiter::for('ticket-retrieval', fn (Request $r) => Limit::perMinute(30)->by($r->ip()));
     }
 }

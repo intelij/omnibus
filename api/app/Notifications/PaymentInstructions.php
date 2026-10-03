@@ -13,6 +13,13 @@ class PaymentInstructions extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [30, 120, 600];
+    }
+
     public function __construct(public Booking $booking, public Payment $payment) {}
 
     public function via(object $notifiable): array

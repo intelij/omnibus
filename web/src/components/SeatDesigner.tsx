@@ -29,14 +29,14 @@ const PALETTE: { type: CellType; label: string; icon?: React.ReactNode }[] = [
 ];
 
 const CELL_STYLE: Record<CellType, string> = {
-  standard: 'bg-white ring-1 ring-slate-300 text-slate-700',
+  standard: 'bg-surface ring-1 ring-border-strong text-ink-secondary',
   premium: 'bg-sky-50 ring-2 ring-sky-400 text-sky-800',
   vip: 'bg-amber-50 ring-2 ring-amber-400 text-amber-800',
   disabled_access: 'bg-purple-50 ring-2 ring-purple-400 text-purple-800',
   driver: 'bg-slate-700 text-white',
-  toilet: 'bg-slate-300 text-slate-500',
-  stairs: 'bg-slate-300 text-slate-500',
-  exit: 'bg-slate-300 text-slate-500',
+  toilet: 'bg-slate-300 text-ink-faint',
+  stairs: 'bg-slate-300 text-ink-faint',
+  exit: 'bg-slate-300 text-ink-faint',
   empty: 'bg-transparent',
 };
 
@@ -102,7 +102,7 @@ export function SeatDesigner({
             aria-pressed={tool === p.type && paintMode === 'paint'}
             className={clsx(
               'flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1',
-              tool === p.type && paintMode === 'paint' ? 'bg-teal-700 text-white ring-teal-700' : 'bg-white text-slate-600 ring-slate-300 hover:bg-slate-50',
+              tool === p.type && paintMode === 'paint' ? 'bg-brand text-white ring-brand-hover' : 'bg-surface text-ink-muted ring-border-strong hover:bg-surface-muted',
             )}
           >
             {p.icon}{p.label}
@@ -111,7 +111,7 @@ export function SeatDesigner({
       </div>
 
       <div
-        className="inline-grid gap-1.5 rounded-xl bg-slate-100 p-4"
+        className="inline-grid gap-1.5 rounded-xl bg-surface-muted p-4"
         style={{ gridTemplateColumns: `repeat(${cols}, 2.75rem)` }}
         role="grid"
         aria-label="Seat layout editor"
@@ -128,9 +128,9 @@ export function SeatDesigner({
                 onClick={() => paint(row, col)}
                 className={clsx(
                   'flex h-11 flex-col items-center justify-center rounded-md text-[10px] font-semibold transition-colors',
-                  'focus-visible:outline-2 focus-visible:outline-teal-600',
+                  'focus-visible:outline-2 focus-visible:outline-brand',
                   CELL_STYLE[cell?.type ?? 'empty'],
-                  !cell && 'border border-dashed border-slate-300 hover:border-teal-500',
+                  !cell && 'border border-dashed border-border-strong hover:border-teal-500',
                 )}
               >
                 {CELL_ICON[cell?.type ?? 'empty'] ?? null}

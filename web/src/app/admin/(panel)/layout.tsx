@@ -1,6 +1,7 @@
 'use client';
 
 import { api, clearSession, getToken, getUser, UserProfile } from '@/lib/api';
+import { readableOnWhite } from '@/lib/brand';
 import { clsx } from 'clsx';
 import {
   Armchair, BarChart3, Banknote, Bus, CalendarClock, ClipboardList,
@@ -48,7 +49,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!ready) return null;
 
-  const primary = user?.tenant?.branding?.primary_color ?? '#0f766e';
+  const primary = readableOnWhite(user?.tenant?.branding?.primary_color ?? '#0f766e');
   const items = NAV.filter((i) => !i.perm || user?.permissions.includes(i.perm) || user?.roles.includes('tenant_owner'));
 
   const logout = async () => {
@@ -59,8 +60,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="flex min-h-screen">
-      <aside className="flex w-60 flex-col border-r border-slate-200 bg-white">
-        <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-4 font-bold" style={{ color: primary }}>
+      <a href="#main" className="skip-link">Skip to content</a>
+      <aside className="flex w-60 flex-col border-r border-border bg-surface">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-4 font-bold" style={{ color: primary }}>
           <Bus className="h-5 w-5" /> {user?.tenant?.name ?? 'Admin'}
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
@@ -70,22 +72,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               href={href}
               className={clsx(
                 'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm',
-                pathname === href ? 'bg-teal-50 font-semibold text-teal-800' : 'text-slate-600 hover:bg-slate-50',
+                pathname === href ? 'bg-brand-soft font-semibold text-brand-ink' : 'text-ink-muted hover:bg-surface-muted',
               )}
             >
               <Icon className="h-4 w-4" aria-hidden /> {label}
             </Link>
           ))}
         </nav>
-        <div className="border-t border-slate-100 p-3">
+        <div className="border-t border-border p-3">
           <p className="truncate text-sm font-medium">{user?.name}</p>
-          <p className="truncate text-xs text-slate-400">{user?.roles.join(', ')}</p>
-          <button onClick={logout} className="mt-2 flex items-center gap-1 text-xs text-slate-500 hover:text-red-600">
+          <p className="truncate text-xs text-ink-faint">{user?.roles.join(', ')}</p>
+          <button onClick={logout} className="mt-2 flex items-center gap-1 text-xs text-ink-faint hover:text-[var(--danger)]">
             <LogOut className="h-3.5 w-3.5" /> Sign out
           </button>
         </div>
       </aside>
-      <main className="flex-1 overflow-x-auto p-6">{children}</main>
+      <main id="main" className="flex-1 overflow-x-auto p-6">{children}</main>
     </div>
   );
 }

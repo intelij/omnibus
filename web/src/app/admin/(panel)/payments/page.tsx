@@ -34,7 +34,20 @@ export default function PaymentsPage() {
 
   const { data: recon } = useQuery({
     queryKey: ['reconciliation'],
-    queryFn: () => api.get<{ pending: PaymentRow[]; processing: PaymentRow[]; failed_today: number }>('/reconciliation'),
+    queryFn: () => api.get<{
+      pending: PaymentRow[]; processing: PaymentRow[]; failed_today: number;
+      discrepancies: Array<{
+        id: number; type: string; expected_amount: number | null;
+        received_amount: number | null; created_at: string;
+        payment?: { id: number; booking_id: number; method: string; amount: number; status: string };
+      }>;
+    }>('/reconciliation'),
+  });
+
+  const resolveDiscrepancy = useMutation({
+    mutationFn: (id: number) => api.post(`/payment-discrepancies/${id}/resolve`, { notes: 'Reviewed by finance — see refund record if applicable.' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reconciliation'] }),
+    onError: (e: unknown) => setError(errMsg(e, 'Could not resolve discrepancy')),
   });
 
   const confirm = useMutation({
@@ -61,7 +74,7 @@ export default function PaymentsPage() {
           </h2>
           <div className="space-y-1 text-sm">
             {recon.pending.slice(0, 5).map((p) => (
-              <div key={p.id} className="flex items-center justify-between rounded bg-white px-3 py-2 ring-1 ring-amber-100">
+              <div key={p.id} className="flex items-center justify-between rounded bg-surface px-3 py-2 ring-1 ring-amber-100">
                 <span>{p.booking_reference} — {p.currency} {p.amount.toFixed(2)}</span>
                 <Button variant="secondary" onClick={() => confirm.mutate(p.id)}>Confirm cash</Button>
               </div>
@@ -70,12 +83,34 @@ export default function PaymentsPage() {
         </Card>
       )}
 
+      {recon && recon.discrepancies?.length > 0 && (
+        <Card className="mb-6 border-red-200 bg-red-50/50">
+          <h2 className="mb-2 text-sm font-semibold text-red-900">
+            {recon.discrepancies.length} payment discrepanc{recon.discrepancies.length === 1 ? 'y' : 'ies'} — review required
+          </h2>
+          <div className="space-y-1 text-sm">
+            {recon.discrepancies.map((d) => (
+              <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded bg-surface px-3 py-2 ring-1 ring-red-100">
+                <span>
+                  <Badge tone="red">{d.type.replace(/_/g, ' ')}</Badge>{' '}
+                  {d.type === 'amount_mismatch'
+                    ? `expected ${d.expected_amount ?? '?'} received ${d.received_amount ?? '?'}`
+                    : `payment ${d.payment?.id ?? ''} arrived after booking closed`}
+                  {d.payment && <span className="ml-2 text-ink-faint">({d.payment.method} · {d.payment.status})</span>}
+                </span>
+                <Button variant="secondary" onClick={() => resolveDiscrepancy.mutate(d.id)} disabled={resolveDiscrepancy.isPending}>Mark resolved</Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <FilterBar>
-        <select className="rounded-lg border-0 bg-white px-3 py-2 text-sm ring-1 ring-slate-300" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status">
+        <select className="rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} aria-label="Filter by status">
           <option value="">All</option>
           {['pending', 'processing', 'paid', 'failed', 'cancelled', 'refunded', 'partially_refunded', 'expired'].map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
         </select>
-        <a href="#" onClick={(e) => { e.preventDefault(); window.open(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8891/api/v1'}/payments-export`, '_blank'); }} className="text-sm font-medium text-teal-700 hover:underline">Export CSV</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); window.open(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8891/api/v1'}/payments-export`, '_blank'); }} className="text-sm font-medium text-brand hover:underline">Export CSV</a>
       </FilterBar>
 
       {isLoading ? <Spinner /> : (
@@ -87,11 +122,11 @@ export default function PaymentsPage() {
               p.method,
               `${p.currency} ${p.amount.toFixed(2)}`,
               <Badge key="s" tone={statusTone(p.status)}>{p.status.replace('_', ' ')}</Badge>,
-              <span key="r" className="text-xs text-slate-400">{p.provider_ref ?? '—'}</span>,
+              <span key="r" className="text-xs text-ink-faint">{p.provider_ref ?? '—'}</span>,
               new Date(p.created_at).toLocaleDateString(),
               <div key="a" className="flex gap-2">
                 {p.method === 'cash' && p.status === 'pending' && (
-                  <button className="text-sm font-medium text-teal-700 hover:underline" onClick={() => confirm.mutate(p.id)}>Confirm</button>
+                  <button className="text-sm font-medium text-brand hover:underline" onClick={() => confirm.mutate(p.id)}>Confirm</button>
                 )}
                 {['paid', 'partially_refunded'].includes(p.status) && (
                   <button className="text-sm font-medium text-red-600 hover:underline" onClick={() => { setRefundFor(p); setRefundAmount(String(p.amount)); }}>Refund</button>
@@ -105,15 +140,15 @@ export default function PaymentsPage() {
 
       {refundFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setRefundFor(null)} />
+          <div className="absolute inset-0 bg-slate-900/50" onClick={() => setRefundFor(null)} />
           <Card className="relative w-full max-w-sm">
             <h3 className="font-semibold">Refund {refundFor.booking_reference}</h3>
             <div className="mt-4 space-y-3">
               <label className="block text-sm">Amount ({refundFor.currency})
-                <input type="number" step="0.01" min="0.01" max={refundFor.amount} className="mt-1 w-full rounded-lg border-0 px-3 py-2 ring-1 ring-slate-300" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} />
+                <input type="number" step="0.01" min="0.01" max={refundFor.amount} className="mt-1 w-full rounded-lg border-0 px-3 py-2 ring-1 ring-border-strong" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} />
               </label>
               <label className="block text-sm">Reason
-                <input className="mt-1 w-full rounded-lg border-0 px-3 py-2 ring-1 ring-slate-300" value={refundReason} onChange={(e) => setRefundReason(e.target.value)} />
+                <input className="mt-1 w-full rounded-lg border-0 px-3 py-2 ring-1 ring-border-strong" value={refundReason} onChange={(e) => setRefundReason(e.target.value)} />
               </label>
               <div className="flex gap-2">
                 <Button variant="danger" onClick={() => refund.mutate()} disabled={refund.isPending || !refundReason}>Process refund</Button>

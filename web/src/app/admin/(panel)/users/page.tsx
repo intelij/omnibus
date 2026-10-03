@@ -49,7 +49,7 @@ export default function UsersPage() {
             u.email,
             <Badge key="r" tone="blue">{u.roles[0]?.name.replace('_', ' ') ?? '—'}</Badge>,
             <Badge key="s" tone={u.status === 'active' ? 'green' : 'red'}>{u.status}</Badge>,
-            <button key="a" className="text-sm text-teal-700 hover:underline" onClick={() => setStatus.mutate({ id: u.id, status: u.status === 'active' ? 'disabled' : 'active' })}>
+            <button key="a" className="text-sm text-brand hover:underline" onClick={() => setStatus.mutate({ id: u.id, status: u.status === 'active' ? 'disabled' : 'active' })}>
               {u.status === 'active' ? 'Disable' : 'Enable'}
             </button>,
           ])}

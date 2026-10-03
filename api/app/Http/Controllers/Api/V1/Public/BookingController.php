@@ -12,7 +12,9 @@ use App\Notifications\BookingCancelled;
 use App\Notifications\PaymentInstructions;
 use App\Services\BookingService;
 use App\Services\PaymentService;
+use App\Services\PrivacyService;
 use App\Services\TicketService;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
@@ -105,6 +107,37 @@ class BookingController extends Controller
                 'branding' => $booking->tenant->branding,
                 'trip' => new TripResource($booking->trip->load('route.stops')),
             ]);
+    }
+
+    /** Data-access right: guest downloads their complete record. */
+    public function privacyExport(string $reference, Request $request)
+    {
+        $booking = $this->findForGuest($reference, $request);
+        Audit::record('privacy.export', $booking, tenantId: $booking->tenant_id);
+
+        return response()->json(['data' => app(PrivacyService::class)->export($booking)]);
+    }
+
+    /**
+     * Erasure right: anonymize PII on a settled booking. Financial records
+     * and tickets stay intact — only identifying fields are masked.
+     */
+    public function anonymize(string $reference, Request $request)
+    {
+        $booking = $this->findForGuest($reference, $request);
+
+        if (! in_array($booking->status, [
+            Booking::STATUS_COMPLETED, Booking::STATUS_CANCELLED,
+            Booking::STATUS_EXPIRED, Booking::STATUS_REFUNDED,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'booking' => 'Only completed, cancelled or expired bookings can be anonymized — an active booking needs passenger details to travel.',
+            ]);
+        }
+
+        app(PrivacyService::class)->anonymize($booking);
+
+        return response()->json(['anonymized' => true]);
     }
 
     /**

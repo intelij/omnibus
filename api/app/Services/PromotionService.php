@@ -68,6 +68,15 @@ class PromotionService
      */
     public function redeem(Promotion $promo, Booking $booking, float $amount, ?string $customerKey): PromotionRedemption
     {
+        // Lock the promotion row and re-check the cap — two bookings on
+        // different trips hold different seat locks, so the earlier count
+        // check alone could both read "0 used" and double-redeem.
+        $locked = Promotion::lockForUpdate()->findOrFail($promo->id);
+        if ($locked->usage_limit !== null
+            && $locked->redemptions()->count() >= $locked->usage_limit) {
+            throw new InvalidPromotionException('This promotion has been fully redeemed.');
+        }
+
         return PromotionRedemption::create([
             'tenant_id' => $booking->tenant_id,
             'promotion_id' => $promo->id,

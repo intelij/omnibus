@@ -68,7 +68,7 @@ function TripPage() {
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h1 className="text-xl font-bold">Choose your seats</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-ink-faint">
             {boardingStop?.name} → {dropoffStop?.name} · {trip?.departure_at && new Date(trip.departure_at).toLocaleString()} · {passengers} passenger{passengers > 1 ? 's' : ''}
           </p>
           <div className="mt-6">
@@ -80,7 +80,7 @@ function TripPage() {
           <Card className="sticky top-6">
             <h2 className="font-semibold">Your selection</h2>
             {selected.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="mt-2 text-sm text-ink-faint">
                 Pick {passengers} seat{passengers > 1 ? 's' : ''} on the map, or continue to let us allocate automatically.
               </p>
             ) : (
@@ -88,7 +88,7 @@ function TripPage() {
                 {selected.map((s) => <Badge key={s.id} tone="green">Seat {s.label}</Badge>)}
               </div>
             )}
-            <div className="mt-4 border-t border-slate-100 pt-4 text-sm">
+            <div className="mt-4 border-t border-border pt-4 text-sm">
               <div className="flex justify-between"><span>Seats</span><span>{selected.length || passengers}</span></div>
               <div className="mt-1 flex justify-between font-semibold">
                 <span>Est. total</span>
@@ -98,7 +98,7 @@ function TripPage() {
             <Button className="mt-4 w-full" onClick={proceed} disabled={selected.length !== 0 && selected.length !== passengers}>
               {selected.length ? `Continue with seat${selected.length > 1 ? 's' : ''} ${selected.map((s) => s.label).join(', ')}` : 'Auto-allocate seats'}
             </Button>
-            <p className="mt-3 text-center text-xs text-slate-400">
+            <p className="mt-3 text-center text-xs text-ink-faint">
               Seats are held for {seatData?.hold_minutes ?? 10} minutes while you check out.
             </p>
           </Card>

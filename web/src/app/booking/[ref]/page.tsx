@@ -39,6 +39,19 @@ function BookingPage() {
     onError: (e) => setMessage(e instanceof ApiError ? e.body.message ?? 'Could not cancel' : 'Could not cancel'),
   });
 
+  const retry = useMutation({
+    mutationFn: (method: string) =>
+      api.post<{ payment: { initiation?: { url?: string } } }>(`/public/bookings/${ref}/payments?email=${encodeURIComponent(key!)}`, { method }),
+    onSuccess: (res) => {
+      const url = res.payment.initiation?.url;
+      if (url) window.location.href = url;
+      else { bookingQuery.refetch(); setMessage('Payment re-initiated — see instructions below.'); }
+    },
+    onError: (e) => setMessage(e instanceof ApiError ? e.body.message ?? 'Could not retry payment' : 'Could not retry payment'),
+  });
+
+  const [newMethod, setNewMethod] = useState('cash');
+
   const booking = bookingQuery.data?.data;
 
   if (key === null) {
@@ -46,7 +59,7 @@ function BookingPage() {
       <PublicShell>
         <Card className="mx-auto max-w-md">
           <h1 className="text-lg font-bold">Find your booking</h1>
-          <p className="mt-1 text-sm text-slate-500">Enter the email or phone number used when booking.</p>
+          <p className="mt-1 text-sm text-ink-faint">Enter the email or phone number used when booking.</p>
           <div className="mt-4 space-y-3">
             <Input label="Email or phone" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} />
             <ErrorBanner message={authError} />
@@ -78,7 +91,7 @@ function BookingPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Booking {booking.reference}</h1>
-            <p className="text-sm text-slate-500">{booking.trip?.route?.origin} → {booking.trip?.route?.destination}</p>
+            <p className="text-sm text-ink-faint">{booking.trip?.route?.origin} → {booking.trip?.route?.destination}</p>
           </div>
           <Badge tone={statusTone(booking.status)}>{booking.status.replace('_', ' ')}</Badge>
         </div>
@@ -93,19 +106,52 @@ function BookingPage() {
         )}
         {['pending_payment', 'held'].includes(booking.status) && (
           <div className="mt-4 rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-            <p className="font-medium">Payment pending.</p>
-            {booking.payment?.instructions && <p className="mt-1">{booking.payment.instructions}</p>}
+            <p className="font-medium">
+              {booking.payment?.status === 'failed' ? 'Payment unsuccessful.' : 'Payment pending.'}
+            </p>
+            {booking.payment?.status === 'failed' && (
+              <p className="mt-1">
+                Your seats are held temporarily.
+                {booking.expires_at && <> You can retry payment until {new Date(booking.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.</>}
+              </p>
+            )}
+            {booking.payment?.instructions && booking.payment.status !== 'failed' && <p className="mt-1">{booking.payment.instructions}</p>}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {booking.payment?.redirect_url && booking.payment.status !== 'failed' && (
+                <Button onClick={() => { window.location.href = booking.payment!.redirect_url!; }}>
+                  Complete payment
+                </Button>
+              )}
+              {booking.payment?.status === 'failed' && (
+                <Button onClick={() => retry.mutate(booking.payment!.method)} disabled={retry.isPending}>
+                  {retry.isPending ? 'Starting…' : 'Retry payment'}
+                </Button>
+              )}
+              {booking.payment?.status === 'failed' && (
+                <span className="flex items-center gap-2 text-amber-900">
+                  <label htmlFor="change-method" className="text-xs">or pay another way:</label>
+                  <select id="change-method" className="rounded-lg border-0 px-2 py-1.5 text-sm ring-1 ring-amber-300"
+                    value={newMethod} onChange={(e) => setNewMethod(e.target.value)}>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="ecocash">EcoCash</option>
+                    <option value="inbucks">InBucks</option>
+                  </select>
+                  <Button variant="secondary" onClick={() => retry.mutate(newMethod)} disabled={retry.isPending}>Go</Button>
+                </span>
+              )}
+            </div>
           </div>
         )}
 
         <Card className="mt-6">
           <div className="grid gap-4 text-sm sm:grid-cols-2">
-            <div><span className="text-slate-500">Departure</span><p className="font-medium">{booking.trip?.departure_at ? new Date(booking.trip.departure_at).toLocaleString() : '—'}</p></div>
-            <div><span className="text-slate-500">Route</span><p className="font-medium">{booking.boarding?.name} → {booking.dropoff?.name}</p></div>
-            <div><span className="text-slate-500">Passenger(s)</span><p className="font-medium">{booking.passengers?.map((p) => p.name).join(', ')}</p></div>
-            <div><span className="text-slate-500">Seats</span><p className="font-medium">{booking.seats?.map((s) => s.label).join(', ')}</p></div>
-            <div><span className="text-slate-500">Total</span><p className="font-medium">{booking.currency} {booking.total.toFixed(2)}{booking.discount > 0 && <span className="ml-2 text-xs text-emerald-700">(-{booking.discount.toFixed(2)} with {booking.promotion_code})</span>}</p></div>
-            <div><span className="text-slate-500">Payment</span><p className="font-medium">{booking.payment ? `${booking.payment.method} — ${booking.payment.status}` : '—'}</p></div>
+            <div><span className="text-ink-faint">Departure</span><p className="font-medium">{booking.trip?.departure_at ? new Date(booking.trip.departure_at).toLocaleString() : '—'}</p></div>
+            <div><span className="text-ink-faint">Route</span><p className="font-medium">{booking.boarding?.name} → {booking.dropoff?.name}</p></div>
+            <div><span className="text-ink-faint">Passenger(s)</span><p className="font-medium">{booking.passengers?.map((p) => p.name).join(', ')}</p></div>
+            <div><span className="text-ink-faint">Seats</span><p className="font-medium">{booking.seats?.map((s) => s.label).join(', ')}</p></div>
+            <div><span className="text-ink-faint">Total</span><p className="font-medium">{booking.currency} {booking.total.toFixed(2)}{booking.discount > 0 && <span className="ml-2 text-xs text-emerald-700">(-{booking.discount.toFixed(2)} with {booking.promotion_code})</span>}</p></div>
+            <div><span className="text-ink-faint">Payment</span><p className="font-medium">{booking.payment ? `${booking.payment.method} — ${booking.payment.status}` : '—'}</p></div>
           </div>
         </Card>
 
@@ -115,12 +161,12 @@ function BookingPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               {ticketsQuery.data.data.map((t) => (
                 <Card key={t.id} className="flex items-center gap-4">
-                  <div className="rounded-lg bg-white p-2 ring-1 ring-slate-200">
+                  <div className="rounded-lg bg-surface p-2 ring-1 ring-border">
                     <QRCode value={t.qr} size={96} aria-label={`Ticket QR for ${t.passenger_name}`} />
                   </div>
                   <div className="text-sm">
                     <p className="font-semibold">{t.passenger_name}</p>
-                    <p className="text-slate-500">Seat {t.seat_label}</p>
+                    <p className="text-ink-faint">Seat {t.seat_label}</p>
                     <Badge tone={statusTone(t.status)}>{t.status}</Badge>
                   </div>
                 </Card>

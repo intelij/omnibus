@@ -14,7 +14,7 @@ function Track() {
     <PublicShell>
       <Card className="mx-auto max-w-md">
         <h1 className="text-lg font-bold">Manage your booking</h1>
-        <p className="mt-1 text-sm text-slate-500">Enter your booking reference and the email or phone you booked with.</p>
+        <p className="mt-1 text-sm text-ink-faint">Enter your booking reference and the email or phone you booked with.</p>
         <div className="mt-4 space-y-4">
           <Input label="Booking reference" placeholder="TH-XXXXXX" value={reference} onChange={(e) => setReference(e.target.value.toUpperCase())} />
           <Input label="Email or phone" value={key} onChange={(e) => setKey(e.target.value)} />

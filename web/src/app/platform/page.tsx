@@ -49,21 +49,21 @@ export default function PlatformPage() {
   if (!ready) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-surface-muted p-6">
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Platform administration</h1>
-            <p className="text-sm text-slate-500">{user?.name} · platform_super_admin</p>
+            <p className="text-sm text-ink-faint">{user?.name} · platform_super_admin</p>
           </div>
           <Button variant="ghost" onClick={() => { clearSession(); router.push('/admin/login'); }}>Sign out</Button>
         </div>
 
         {overview && (
           <div className="mb-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200"><p className="text-2xl font-bold">{overview.tenants.total}</p><p className="text-xs text-slate-500">Tenants</p></div>
-            <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200"><p className="text-2xl font-bold">{overview.tenants.active}</p><p className="text-xs text-slate-500">Active</p></div>
-            <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200"><p className="text-2xl font-bold">{overview.bookings_30d}</p><p className="text-xs text-slate-500">Bookings (30d)</p></div>
+            <div className="rounded-xl bg-surface p-4 ring-1 ring-border"><p className="text-2xl font-bold">{overview.tenants.total}</p><p className="text-xs text-ink-faint">Tenants</p></div>
+            <div className="rounded-xl bg-surface p-4 ring-1 ring-border"><p className="text-2xl font-bold">{overview.tenants.active}</p><p className="text-xs text-ink-faint">Active</p></div>
+            <div className="rounded-xl bg-surface p-4 ring-1 ring-border"><p className="text-2xl font-bold">{overview.bookings_30d}</p><p className="text-xs text-ink-faint">Bookings (30d)</p></div>
           </div>
         )}
 
@@ -75,13 +75,13 @@ export default function PlatformPage() {
           <DataTable
             head={['Operator', 'Slug', 'Plan', 'Currency', 'Status', 'Actions']}
             rows={(data?.data ?? []).map((t) => [
-              <span key="n" className="font-medium">{t.trading_name}<br /><span className="text-xs font-normal text-slate-400">{t.legal_name}</span></span>,
+              <span key="n" className="font-medium">{t.trading_name}<br /><span className="text-xs font-normal text-ink-faint">{t.legal_name}</span></span>,
               <code key="s" className="text-xs">{t.slug}</code>,
               t.plan,
               t.currency,
               <Badge key="t" tone={t.status === 'active' ? 'green' : t.status === 'suspended' ? 'red' : 'gray'}>{t.status}</Badge>,
               <div key="a" className="flex gap-2">
-                {t.status !== 'active' && <button className="text-sm text-teal-700 hover:underline" onClick={() => setStatus.mutate({ id: t.id, status: 'active' })}>Activate</button>}
+                {t.status !== 'active' && <button className="text-sm text-brand hover:underline" onClick={() => setStatus.mutate({ id: t.id, status: 'active' })}>Activate</button>}
                 {t.status === 'active' && <button className="text-sm text-red-600 hover:underline" onClick={() => setStatus.mutate({ id: t.id, status: 'suspended' })}>Suspend</button>}
               </div>,
             ])}
@@ -101,7 +101,7 @@ export default function PlatformPage() {
               {['starter', 'professional', 'enterprise'].map((p) => <option key={p} value={p}>{p}</option>)}
             </Select>
           </div>
-          <hr className="border-slate-100" />
+          <hr className="border-border" />
           <h3 className="text-sm font-semibold">Owner account</h3>
           <Input label="Owner name" value={form.owner_name} onChange={(e) => setForm({ ...form, owner_name: e.target.value })} />
           <Input label="Owner email" type="email" value={form.owner_email} onChange={(e) => setForm({ ...form, owner_email: e.target.value })} />

@@ -127,7 +127,10 @@ export interface Booking {
   passengers?: { id: number; name: string; type: string }[];
   events?: { id: number; event: string; actor_type: string | null; created_at: string }[];
   promotion_code?: string | null;
-  payment?: { id: number; method: string; status: string; instructions: string | null } | null;
+  payment?: {
+    id: number; method: string; status: string; instructions: string | null;
+    redirect_url?: string | null; expires_at?: string | null;
+  } | null;
   expires_at?: string;
   confirmed_at?: string;
   created_at: string;

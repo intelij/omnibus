@@ -59,6 +59,11 @@ class Payment extends Model
         return $this->hasMany(Refund::class);
     }
 
+    public function discrepancies(): HasMany
+    {
+        return $this->hasMany(PaymentDiscrepancy::class);
+    }
+
     public function confirmer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'confirmed_by');

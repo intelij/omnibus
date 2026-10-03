@@ -81,11 +81,11 @@ export default function TripDetailPage() {
               </Button>
             ))}
             {(STATUS_ACTIONS[trip.status] ?? []).includes('cancelled') && (
-              <input className="rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-slate-300" placeholder="Cancellation reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+              <input className="rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-border-strong" placeholder="Cancellation reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
             )}
           </div>
 
-          <div className="mt-6 border-t border-slate-100 pt-4">
+          <div className="mt-6 border-t border-border pt-4">
             <h3 className="mb-2 text-sm font-semibold">Swap bus</h3>
             <div className="flex gap-2">
               <Select value={swapBus} onChange={(e) => setSwapBus(e.target.value)} aria-label="Replacement bus">
@@ -94,7 +94,7 @@ export default function TripDetailPage() {
               </Select>
               <Button variant="secondary" disabled={!swapBus || swap.isPending} onClick={() => swap.mutate()}>Swap</Button>
             </div>
-            <p className="mt-1 text-xs text-slate-400">Passengers are re-seated automatically on the new layout.</p>
+            <p className="mt-1 text-xs text-ink-faint">Passengers are re-seated automatically on the new layout.</p>
           </div>
         </Card>
 

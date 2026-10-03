@@ -95,4 +95,4 @@ docs/           architecture, security, API, ops & audit documents
 - Fill `PAYNOW_*`, `ECOCASH_*`, `INBUCKS_*` env vars — gateways self-disable when unconfigured.
 - Point web `NEXT_PUBLIC_API_URL` at the API host; configure `APP_DOMAIN` for
   tenant subdomain resolution.
-- See `docs/DEPLOYMENT.md` and `docs/PRODUCTION_READINESS.md` for the full checklist.
+- See `docs/DEPLOYMENT.md` and `docs/PRODUCTION_READINESS_REPORT.md` for the full checklist.

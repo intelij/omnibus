@@ -13,7 +13,7 @@ class AuditLog extends Model
 
     protected $fillable = [
         'tenant_id', 'user_id', 'action', 'auditable_type', 'auditable_id',
-        'ip', 'user_agent', 'metadata',
+        'ip', 'user_agent', 'request_id', 'metadata',
     ];
 
     protected function casts(): array

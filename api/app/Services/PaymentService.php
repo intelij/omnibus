@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Exceptions\GatewayUnavailableException;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\PaymentDiscrepancy;
 use App\Models\PaymentTransaction;
 use App\Models\Refund;
 use App\Models\User;
 use App\Payments\GatewayManager;
+use App\Payments\PollableGateway;
 use App\StateMachines\BookingStateMachine;
 use App\StateMachines\PaymentStateMachine;
 use App\Support\Audit;
@@ -49,6 +51,12 @@ class PaymentService
             $existing = $booking->openPayment;
             if ($existing && $existing->method === $method) {
                 return $existing;
+            }
+
+            // A different method means the customer abandoned the old attempt
+            // — never leave two payable payments open on one booking.
+            if ($existing && $existing->method !== $method) {
+                $this->states->transition($existing, Payment::STATUS_CANCELLED);
             }
 
             if ($booking->status === Booking::STATUS_HELD) {
@@ -138,6 +146,18 @@ class PaymentService
                 'payload_hash' => hash('sha256', json_encode($event['payload'] ?? [])),
             ]);
 
+            // Amount verification — a "paid" callback for the wrong amount
+            // must never confirm a booking. Flag it for finance review.
+            if ($event['status'] === Payment::STATUS_PAID
+                && isset($event['amount'])
+                && abs($event['amount'] - (float) $payment->amount) > 0.005) {
+                $this->flagDiscrepancy($payment, PaymentDiscrepancy::TYPE_AMOUNT_MISMATCH, [
+                    'event_id' => $event['event_id'],
+                ], receivedAmount: $event['amount']);
+
+                return $tx;
+            }
+
             $this->applyProviderStatus($payment, $event['status'], $event['provider_ref'] ?? null);
 
             Audit::record('payment.webhook', $payment, [
@@ -207,7 +227,108 @@ class PaymentService
         $payment->confirmed_at = now();
         $payment->save();
 
-        $this->bookings->confirm($payment->booking);
+        $booking = $payment->booking->fresh();
+        if ($this->bookingStates->canTransition($booking, Booking::STATUS_CONFIRMED)) {
+            $this->bookings->confirm($booking);
+        } else {
+            // Money arrived but the booking can no longer be confirmed
+            // (expired/cancelled) — flag for finance; never resurrect the
+            // booking or steal seats back from whoever holds them now.
+            $this->flagDiscrepancy($payment, PaymentDiscrepancy::TYPE_LATE_PAYMENT, [
+                'booking_status' => $booking->status,
+            ]);
+        }
+    }
+
+    /**
+     * Raise a finance-review flag. Stored, audited, and notified so nothing
+     * is silently dropped — a real payment discrepancy needs a human refund
+     * or correction, not a swallowed exception.
+     */
+    public function flagDiscrepancy(
+        Payment $payment,
+        string $type,
+        array $context = [],
+        ?float $receivedAmount = null,
+    ): PaymentDiscrepancy {
+        $discrepancy = PaymentDiscrepancy::create([
+            'tenant_id' => $payment->tenant_id,
+            'payment_id' => $payment->id,
+            'type' => $type,
+            'expected_amount' => $payment->amount,
+            'received_amount' => $receivedAmount,
+            'status' => 'open',
+            'context' => $context,
+        ]);
+
+        Audit::record('payment.discrepancy', $payment, [
+            'discrepancy_id' => $discrepancy->id, 'type' => $type,
+        ], tenantId: $payment->tenant_id);
+
+        return $discrepancy;
+    }
+
+    /**
+     * Poll pending/processing payments against providers that support
+     * status queries (Paynow pollurl). Catches missed webhooks.
+     */
+    public function reconcilePending(int $limit = 50): int
+    {
+        $pending = Payment::withoutTenantScope()
+            ->whereIn('status', [Payment::STATUS_PENDING, Payment::STATUS_PROCESSING])
+            ->whereNotNull('provider_ref')
+            ->where('created_at', '<', now()->subMinutes(2))
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now()->subDay());
+            })
+            ->orderBy('created_at')
+            ->limit($limit)
+            ->get();
+
+        $checked = 0;
+        foreach ($pending as $payment) {
+            $gateway = $this->gateways->driver($payment->method);
+            if (! $gateway instanceof PollableGateway) {
+                continue;
+            }
+
+            $result = $gateway->statusCheck($payment);
+            if (! $result || ! $result['status']) {
+                $payment->forceFill([
+                    'metadata' => array_merge($payment->metadata ?? [], [
+                        'poll_count' => (int) ($payment->metadata['poll_count'] ?? 0) + 1,
+                    ]),
+                ])->save();
+
+                continue;
+            }
+            $checked++;
+
+            DB::transaction(function () use ($payment, $result) {
+                PaymentTransaction::create([
+                    'tenant_id' => $payment->tenant_id,
+                    'payment_id' => $payment->id,
+                    'type' => PaymentTransaction::TYPE_STATUS_POLL,
+                    'status' => $result['status'],
+                    'amount' => $result['amount'] ?? null,
+                    'payload' => $result['payload'] ?? null,
+                ]);
+
+                if ($result['status'] === Payment::STATUS_PAID
+                    && isset($result['amount'])
+                    && abs($result['amount'] - (float) $payment->amount) > 0.005) {
+                    $this->flagDiscrepancy($payment, PaymentDiscrepancy::TYPE_AMOUNT_MISMATCH, [
+                        'source' => 'status_poll',
+                    ], receivedAmount: $result['amount']);
+
+                    return;
+                }
+
+                $this->applyProviderStatus($payment, $result['status'], $result['provider_ref'] ?? null);
+            });
+        }
+
+        return $checked;
     }
 
     /**

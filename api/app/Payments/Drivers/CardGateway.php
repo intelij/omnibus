@@ -4,20 +4,24 @@ namespace App\Payments\Drivers;
 
 use App\Exceptions\GatewayUnavailableException;
 use App\Models\Payment;
-use App\Payments\PaymentGateway;
+use App\Payments\PollableGateway;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Card payments via a hosted-redirect provider (Paynow-compatible shape).
- * We never touch PAN/CVV — the provider hosts the card capture; we store
- * only the provider reference, status, amount and reconciliation metadata.
+ * Card payments via Paynow hosted checkout (paynow.co.zw).
+ * We never touch PAN/CVV — Paynow hosts the card capture; we store only
+ * the provider reference (pollurl/paynowreference), status and amount.
  *
- * Requires config: CARD_PROVIDER credentials (transithub.payment_gateways.card).
- * Without credentials the driver reports unavailable and initiate() throws
- * — real integration stays config-gated, nothing is faked.
+ * Credentials: PAYNOW_INTEGRATION_ID / PAYNOW_INTEGRATION_KEY. Without them
+ * the driver reports unavailable — real integration stays config-gated.
+ *
+ * Paynow lifecycle:
+ *   initiate → POST initiatetransaction → browserurl (customer redirect)
+ *            → resulturl callback (server-to-server, hash-verified)
+ *            → pollurl status check (reconciliation fallback)
  */
-class CardGateway implements PaymentGateway
+class CardGateway implements PollableGateway
 {
     public function key(): string
     {
@@ -26,14 +30,14 @@ class CardGateway implements PaymentGateway
 
     public function label(): string
     {
-        return 'Card (Visa/Mastercard)';
+        return 'Card (Paynow)';
     }
 
     public function isAvailable(): bool
     {
-        $cfg = config('transithub.payment_gateways.card');
+        $cfg = $this->cfg();
 
-        return ! empty($cfg['merchant_id']) && ! empty($cfg['merchant_key']);
+        return ! empty($cfg['integration_id']) && ! empty($cfg['integration_key']);
     }
 
     public function initiate(Payment $payment): array
@@ -42,22 +46,25 @@ class CardGateway implements PaymentGateway
             throw new GatewayUnavailableException('card');
         }
 
-        $cfg = config('transithub.payment_gateways.card');
+        $cfg = $this->cfg();
         $booking = $payment->booking;
 
         $fields = [
-            'id' => $cfg['merchant_id'],
+            'id' => $cfg['integration_id'],
             'reference' => $booking->booking_reference,
             'amount' => number_format((float) $payment->amount, 2, '.', ''),
             'additionalinfo' => "Bus ticket {$booking->booking_reference}",
-            'returnurl' => $cfg['return_url'] ?? url("/booking/{$booking->booking_reference}"),
-            'resulturl' => route('webhooks.payments', 'card'),
+            'returnurl' => $cfg['return_url']
+                ?? rtrim((string) config('transithub.frontend_url'), '/')."/booking/{$booking->booking_reference}",
+            'resulturl' => $cfg['result_url'] ?? route('webhooks.payments', 'card'),
             'authemail' => $booking->contact_email ?? '',
             'status' => 'Message',
         ];
-        $fields['hash'] = $this->hash($fields, $cfg['merchant_key']);
+        $fields['hash'] = $this->hash($fields, $cfg['integration_key']);
 
-        $response = Http::asForm()->post('https://www.paynow.co.zw/interface/initiatetransaction', $fields);
+        $response = Http::asForm()
+            ->timeout(15)
+            ->post($cfg['initiate_endpoint'], $fields);
 
         if (! $response->successful() || ! str_contains($response->body(), 'browserurl=')) {
             return [
@@ -68,20 +75,38 @@ class CardGateway implements PaymentGateway
 
         parse_str($response->body(), $parsed);
 
+        // Fail closed if Paynow's own response hash is wrong — a tampered or
+        // misconfigured endpoint must never send the customer somewhere bogus.
+        if (isset($parsed['hash']) && ! hash_equals(
+            $this->hash($parsed, $cfg['integration_key']),
+            (string) $parsed['hash']
+        )) {
+            return [
+                'type' => 'none',
+                'message' => 'Card checkout could not be started. Try another method or contact support.',
+            ];
+        }
+
         $payment->update(['provider_ref' => $parsed['pollurl'] ?? null]);
 
         return [
             'type' => 'redirect',
             'url' => urldecode($parsed['browserurl'] ?? ''),
             'provider_ref' => $parsed['pollurl'] ?? null,
+            'message' => 'You will be redirected to Paynow to complete payment.',
         ];
     }
 
+    /**
+     * Paynow result (server-to-server callback). Verified with the shared
+     * integration-key hash over the received fields — unverifiable or missing
+     * hashes are rejected before any state change.
+     */
     public function parseWebhook(Request $request): array
     {
-        $cfg = config('transithub.payment_gateways.card');
+        $cfg = $this->cfg();
         $data = $request->all();
-        $expected = $this->hash($data, $cfg['merchant_key'] ?? '');
+        $expected = $this->hash($data, $cfg['integration_key'] ?? '');
 
         if (! hash_equals($expected, (string) ($data['hash'] ?? ''))) {
             abort(401, 'Invalid signature.');
@@ -90,17 +115,51 @@ class CardGateway implements PaymentGateway
         return [
             'event_id' => 'card:'.($data['reference'] ?? '').':'.($data['paynowreference'] ?? ''),
             'status' => $this->normalizeStatus((string) ($data['status'] ?? '')),
-            'provider_ref' => $data['paynowreference'] ?? null,
+            'provider_ref' => $data['paynowreference'] ?? ($data['pollurl'] ?? null),
             'amount' => isset($data['amount']) ? (float) $data['amount'] : null,
             'booking_reference' => $data['reference'] ?? null,
             'payload' => $data,
         ];
     }
 
+    /**
+     * Poll Paynow for the current status of an initiated payment.
+     * provider_ref holds the pollurl returned at initiation.
+     */
+    public function statusCheck(Payment $payment): ?array
+    {
+        $pollUrl = $payment->metadata['initiation']['poll_url'] ?? $payment->provider_ref;
+        if (! $pollUrl || ! str_starts_with((string) $pollUrl, 'http')) {
+            return null;
+        }
+
+        $response = Http::asForm()->timeout(10)->post($pollUrl);
+        if (! $response->successful()) {
+            return null;
+        }
+
+        parse_str($response->body(), $data);
+        $cfg = $this->cfg();
+
+        if (isset($data['hash']) && ! hash_equals(
+            $this->hash($data, $cfg['integration_key'] ?? ''),
+            (string) $data['hash']
+        )) {
+            return null; // don't trust unverifiable status payloads
+        }
+
+        return [
+            'status' => $this->normalizeStatus((string) ($data['status'] ?? '')),
+            'provider_ref' => $data['paynowreference'] ?? $pollUrl,
+            'amount' => isset($data['amount']) ? (float) $data['amount'] : null,
+            'payload' => $data,
+        ];
+    }
+
     public function refund(Payment $payment, float $amount, string $reason): array
     {
-        // Hosted-redirect providers typically settle refunds via their
-        // merchant console; we record intent + provider ref when available.
+        // Paynow card refunds are processed via the merchant console; record
+        // intent + provider ref so finance can reconcile.
         return ['provider_ref' => $payment->provider_ref, 'status' => 'pending'];
     }
 
@@ -115,11 +174,20 @@ class CardGateway implements PaymentGateway
         };
     }
 
+    private function cfg(): array
+    {
+        return config('transithub.payment_gateways.card', []);
+    }
+
+    /**
+     * Paynow hash: SHA512 over concatenated field values (excluding the hash
+     * field itself and empty values) + integration key, uppercase hex.
+     */
     private function hash(array $fields, string $key): string
     {
         $concat = '';
         foreach ($fields as $k => $v) {
-            if (strtolower($k) === 'hash' || $v === '') {
+            if (strtolower((string) $k) === 'hash' || $v === '' || $v === null) {
                 continue;
             }
             $concat .= $v;

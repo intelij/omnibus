@@ -47,7 +47,6 @@ function Checkout() {
     const raw = sessionStorage.getItem('booking_draft');
     if (!raw) router.replace('/');
     else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft(JSON.parse(raw));
     }
   }, [router]);
@@ -116,7 +115,7 @@ function Checkout() {
   return (
     <PublicShell>
       <h1 className="text-xl font-bold">Passenger details &amp; payment</h1>
-      <p className="mt-1 text-sm text-slate-500">Your seats are being held while you complete checkout.</p>
+      <p className="mt-1 text-sm text-ink-faint">Your seats are being held while you complete checkout.</p>
 
       <form onSubmit={handleSubmit((v) => submit.mutate(v))} className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -166,17 +165,17 @@ function Checkout() {
             <h2 className="font-semibold">Payment method</h2>
             <div className="mt-3 space-y-2">
               {methods.filter((m) => m.available !== false).map((m) => (
-                <label key={m.key} className="flex cursor-pointer items-center gap-3 rounded-lg p-3 ring-1 ring-slate-200 has-checked:ring-2 has-checked:ring-teal-600">
-                  <input type="radio" value={m.key} {...register('payment_method')} className="h-4 w-4 accent-teal-700" />
+                <label key={m.key} className="flex cursor-pointer items-center gap-3 rounded-lg p-3 ring-1 ring-border has-checked:ring-2 has-checked:ring-brand">
+                  <input type="radio" value={m.key} {...register('payment_method')} className="h-4 w-4 accent-brand" />
                   <span className="text-sm font-medium">{m.label}</span>
                 </label>
               ))}
-              {methods.length === 0 && <p className="text-sm text-slate-500">Payment options unavailable.</p>}
+              {methods.length === 0 && <p className="text-sm text-ink-faint">Payment options unavailable.</p>}
             </div>
             <Button type="submit" className="mt-5 w-full" disabled={submit.isPending}>
               {submit.isPending ? 'Processing…' : 'Confirm booking'}
             </Button>
-            <p className="mt-3 text-xs text-slate-400">
+            <p className="mt-3 text-xs text-ink-faint">
               {watch('payment_method') === 'cash'
                 ? 'Cash bookings hold your seat — pay at the depot before departure.'
                 : 'You will be prompted to complete payment after booking.'}

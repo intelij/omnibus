@@ -11,8 +11,8 @@ Route::prefix('v1')->group(function () {
     // ─── Auth (staff/operators) ────────────────────────────────────
     Route::prefix('auth')->middleware('throttle:auth')->group(function () {
         Route::post('login', [V1\AuthController::class, 'login']);
-        Route::post('forgot-password', [V1\AuthController::class, 'forgotPassword']);
-        Route::post('reset-password', [V1\AuthController::class, 'resetPassword']);
+        Route::post('forgot-password', [V1\AuthController::class, 'forgotPassword'])->middleware('throttle:password-reset');
+        Route::post('reset-password', [V1\AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
     });
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('auth/logout', [V1\AuthController::class, 'logout']);
@@ -21,24 +21,34 @@ Route::prefix('v1')->group(function () {
 
     // ─── Provider webhooks (signature-verified per driver) ─────────
     Route::post('webhooks/payments/{gateway}', [V1\PaymentWebhookController::class, 'handle'])
+        ->middleware('throttle:webhook')
         ->name('webhooks.payments');
 
     // ─── Public booking surface (tenant resolved from host) ────────
     Route::prefix('public')->middleware(['public.tenant', 'throttle:public'])->group(function () {
         Route::get('tenant', [V1\Public\TenantController::class, 'show']);
         Route::get('endpoints', [V1\Public\SearchController::class, 'endpoints']);
-        Route::get('trips/search', [V1\Public\SearchController::class, 'search']);
+        Route::get('trips/search', [V1\Public\SearchController::class, 'search'])
+            ->middleware('throttle:public-search');
         Route::get('trips/{trip}', [V1\Public\TripController::class, 'show']);
-        Route::get('trips/{trip}/seats', [V1\Public\TripController::class, 'seats']);
+        Route::get('trips/{trip}/seats', [V1\Public\TripController::class, 'seats'])
+            ->middleware('throttle:public-search');
         Route::post('bookings', [V1\Public\BookingController::class, 'store'])
             ->middleware(['idempotent', 'throttle:bookings']);
         Route::post('bookings/{booking}/payments', [V1\Public\BookingController::class, 'pay'])
-            ->middleware('idempotent');
-        Route::get('bookings/{reference}', [V1\Public\BookingController::class, 'show']);
+            ->middleware(['idempotent', 'throttle:payment-initiation']);
+        Route::get('bookings/{reference}', [V1\Public\BookingController::class, 'show'])
+            ->middleware('throttle:ticket-retrieval');
         Route::post('bookings/{reference}/cancel', [V1\Public\BookingController::class, 'cancel'])
-            ->middleware('idempotent');
-        Route::get('bookings/{reference}/tickets', [V1\Public\BookingController::class, 'tickets']);
-        Route::post('promotions/validate', [V1\Public\PromotionController::class, 'validateCode']);
+            ->middleware(['idempotent', 'throttle:bookings']);
+        Route::get('bookings/{reference}/tickets', [V1\Public\BookingController::class, 'tickets'])
+            ->middleware('throttle:ticket-retrieval');
+        Route::get('bookings/{reference}/privacy-export', [V1\Public\BookingController::class, 'privacyExport'])
+            ->middleware('throttle:ticket-retrieval');
+        Route::post('bookings/{reference}/anonymize', [V1\Public\BookingController::class, 'anonymize'])
+            ->middleware('throttle:bookings');
+        Route::post('promotions/validate', [V1\Public\PromotionController::class, 'validateCode'])
+            ->middleware('throttle:promo-validation');
     });
 
     // ─── Tenant staff API (agent / admin / finance / support) ──────
@@ -78,6 +88,7 @@ Route::prefix('v1')->group(function () {
         Route::post('payments/{payment}/refund', [V1\Admin\PaymentController::class, 'refund'])->middleware('idempotent');
         Route::get('payments-export', [V1\Admin\PaymentController::class, 'export']);
         Route::get('reconciliation', [V1\Admin\PaymentController::class, 'reconciliation']);
+        Route::post('payment-discrepancies/{discrepancy}/resolve', [V1\Admin\PaymentController::class, 'resolveDiscrepancy']);
 
         Route::apiResource('promotions', V1\Admin\PromotionController::class);
         Route::apiResource('users', V1\Admin\UserController::class);

@@ -38,6 +38,8 @@ class BookingResource extends JsonResource
                 'method' => $this->latestPayment->method,
                 'status' => $this->latestPayment->status,
                 'instructions' => $this->latestPayment->instructions,
+                'redirect_url' => $this->latestPayment->metadata['initiation']['url'] ?? null,
+                'expires_at' => $this->latestPayment->expires_at,
             ] : null),
             'events' => $this->whenLoaded('events', fn () => $this->events->map(fn ($e) => [
                 'id' => $e->id, 'event' => $e->event, 'actor_type' => $e->actor_type, 'created_at' => $e->created_at,

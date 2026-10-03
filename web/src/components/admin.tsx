@@ -13,18 +13,18 @@ export function DataTable({
   empty?: string;
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-200">
+    <div className="overflow-x-auto rounded-xl bg-surface ring-1 ring-border">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-border bg-surface-muted text-xs uppercase tracking-wide text-ink-faint">
             {head.map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {rows.length === 0 ? (
-            <tr><td colSpan={head.length} className="px-4 py-10 text-center text-slate-400">{empty}</td></tr>
+            <tr><td colSpan={head.length} className="px-4 py-10 text-center text-ink-faint">{empty}</td></tr>
           ) : rows.map((cells, i) => (
-            <tr key={i} className="hover:bg-slate-50">
+            <tr key={i} className="hover:bg-surface-muted">
               {cells.map((c, j) => <td key={j} className="px-4 py-3">{c}</td>)}
             </tr>
           ))}
@@ -44,11 +44,11 @@ export function Modal({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal aria-label={title}>
-      <div className="absolute inset-0 bg-slate-900/40" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl">
+      <div className="absolute inset-0 bg-slate-900/50" onClick={onClose} />
+      <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-surface p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">✕</button>
+          <button onClick={onClose} className="rounded p-1 text-ink-faint hover:bg-surface-muted hover:text-ink-muted" aria-label="Close">✕</button>
         </div>
         {children}
       </div>
@@ -64,7 +64,7 @@ export function Pagination({ meta, onPage }: { meta?: { current_page: number; la
         <button
           key={p}
           onClick={() => onPage(p)}
-          className={clsx('h-8 w-8 rounded-lg', p === meta.current_page ? 'bg-teal-700 font-semibold text-white' : 'bg-white ring-1 ring-slate-200 hover:bg-slate-50')}
+          className={clsx('h-8 w-8 rounded-lg', p === meta.current_page ? 'bg-brand font-semibold text-white' : 'bg-surface ring-1 ring-border hover:bg-surface-muted')}
         >
           {p}
         </button>

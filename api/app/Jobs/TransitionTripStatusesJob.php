@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Trip;
+use App\Support\Audit;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -10,6 +11,13 @@ use Illuminate\Foundation\Queue\Queueable;
 class TransitionTripStatusesJob implements ShouldQueue
 {
     use Queueable;
+
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [30, 120, 300];
+    }
 
     public function handle(): void
     {
@@ -23,5 +31,17 @@ class TransitionTripStatusesJob implements ShouldQueue
             ->whereNotNull('arrival_estimate_at')
             ->where('arrival_estimate_at', '<=', now())
             ->update(['status' => Trip::STATUS_ARRIVED]);
+    }
+
+    /**
+     * Final-failure alert — job exhausted retries. Operators get the
+     * failed_jobs table row plus this audit entry so the gap is visible.
+     */
+    public function failed(?\Throwable $e): void
+    {
+        Audit::record('job.failed', null, [
+            'job' => static::class,
+            'error' => $e?->getMessage(),
+        ]);
     }
 }

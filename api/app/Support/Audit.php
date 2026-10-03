@@ -26,8 +26,9 @@ class Audit
             'auditable_type' => $subject ? get_class($subject) : null,
             'auditable_id' => $subject?->id ?? null,
             'ip' => $request?->ip(),
+            'request_id' => $request?->attributes->get('request_id'),
             'user_agent' => substr((string) $request?->userAgent(), 0, 255),
-            'metadata' => $metadata,
+            'metadata' => Mask::metadata($metadata),
         ]);
     }
 }

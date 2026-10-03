@@ -39,7 +39,7 @@ class Booking extends Model
         'boarding_stop_id', 'dropoff_stop_id',
         'boarding_sequence', 'dropoff_sequence',
         'idempotency_key', 'pricing_snapshot', 'expires_at',
-        'confirmed_at', 'cancelled_at', 'cancellation_reason',
+        'confirmed_at', 'cancelled_at', 'cancellation_reason', 'pii_anonymized_at',
     ];
 
     protected function casts(): array

@@ -46,7 +46,7 @@ export default function SupportPage() {
         <DataTable
           head={['Subject', 'Customer', 'Priority', 'Status', 'Assignee', 'Opened']}
           rows={(data?.data ?? []).map((t) => [
-            <button key="s" className="font-medium text-teal-700 hover:underline" onClick={() => setSelected(t)}>{t.subject}</button>,
+            <button key="s" className="font-medium text-brand hover:underline" onClick={() => setSelected(t)}>{t.subject}</button>,
             t.customer_name ?? '—',
             <Badge key="p" tone={t.priority === 'urgent' || t.priority === 'high' ? 'red' : 'gray'}>{t.priority}</Badge>,
             <Badge key="t" tone={statusTone(t.status)}>{t.status}</Badge>,
@@ -67,7 +67,7 @@ export default function SupportPage() {
             {['low', 'normal', 'high', 'urgent'].map((p) => <option key={p} value={p}>{p}</option>)}
           </Select>
           <label className="block"><span className="mb-1 block text-sm font-medium">Description</span>
-            <textarea className="w-full rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-slate-300" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+            <textarea className="w-full rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-border-strong" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
           <Button className="w-full" onClick={() => create.mutate()} disabled={!form.subject}>Create ticket</Button>
         </div>
       </Modal>
@@ -75,24 +75,24 @@ export default function SupportPage() {
       <Modal open={!!selected} onClose={() => setSelected(null)} title={selected?.subject ?? ''}>
         {detail && (
           <div className="space-y-4 text-sm">
-            <p className="text-slate-600">{detail.description ?? 'No description.'}</p>
+            <p className="text-ink-muted">{detail.description ?? 'No description.'}</p>
             <div className="flex gap-2">
               {['open', 'pending_customer', 'resolved', 'closed'].map((s) => (
                 <button key={s} onClick={() => update.mutate({ status: s })}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-medium ${detail.status === s ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  className={`rounded-lg px-2.5 py-1 text-xs font-medium ${detail.status === s ? 'bg-brand text-white' : 'bg-surface-muted text-ink-muted'}`}>
                   {s.replace('_', ' ')}
                 </button>
               ))}
             </div>
-            <div className="border-t border-slate-100 pt-3">
+            <div className="border-t border-border pt-3">
               <h3 className="mb-2 font-semibold">Notes</h3>
               <ul className="space-y-2">
                 {(detail.notes ?? []).map((n) => (
-                  <li key={n.id} className="rounded-lg bg-slate-50 p-2.5"><p>{n.body}</p><p className="mt-1 text-xs text-slate-400">{new Date(n.created_at).toLocaleString()}</p></li>
+                  <li key={n.id} className="rounded-lg bg-surface-muted p-2.5"><p>{n.body}</p><p className="mt-1 text-xs text-ink-faint">{new Date(n.created_at).toLocaleString()}</p></li>
                 ))}
               </ul>
               <div className="mt-3 flex gap-2">
-                <input className="flex-1 rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-slate-300" placeholder="Add note…" value={note} onChange={(e) => setNote(e.target.value)} />
+                <input className="flex-1 rounded-lg border-0 px-3 py-2 text-sm ring-1 ring-border-strong" placeholder="Add note…" value={note} onChange={(e) => setNote(e.target.value)} />
                 <Button variant="secondary" onClick={() => addNote.mutate()} disabled={!note}>Add</Button>
               </div>
             </div>

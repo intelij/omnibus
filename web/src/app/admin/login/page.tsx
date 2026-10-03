@@ -29,9 +29,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface-muted px-4">
       <Card className="w-full max-w-sm">
-        <div className="mb-6 flex items-center gap-2 text-teal-700">
+        <div className="mb-6 flex items-center gap-2 text-brand">
           <Bus className="h-7 w-7" />
           <span className="text-xl font-bold">Operator sign in</span>
         </div>

@@ -22,14 +22,14 @@ export default function ReportsPage() {
     <>
       <PageHeader title="Reports" subtitle="Revenue, occupancy, agents, payment health" />
       <FilterBar>
-        <input type="date" className="rounded-lg border-0 bg-white px-3 py-2 text-sm ring-1 ring-slate-300" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date" />
-        <input type="date" className="rounded-lg border-0 bg-white px-3 py-2 text-sm ring-1 ring-slate-300" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date" />
+        <input type="date" className="rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date" />
+        <input type="date" className="rounded-lg border-0 bg-surface px-3 py-2 text-sm ring-1 ring-border-strong" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date" />
       </FilterBar>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Card><p className="text-2xl font-bold">${(revenue?.total ?? 0).toFixed(2)}</p><p className="text-xs text-slate-500">Gross revenue</p></Card>
-        <Card><p className="text-2xl font-bold">${(revenue?.refunded ?? 0).toFixed(2)}</p><p className="text-xs text-slate-500">Refunded</p></Card>
-        <Card><p className="text-2xl font-bold">{payments ? `${payments.failed + payments.expired}` : '—'}</p><p className="text-xs text-slate-500">Failed + expired payments</p></Card>
+        <Card><p className="text-2xl font-bold">${(revenue?.total ?? 0).toFixed(2)}</p><p className="text-xs text-ink-faint">Gross revenue</p></Card>
+        <Card><p className="text-2xl font-bold">${(revenue?.refunded ?? 0).toFixed(2)}</p><p className="text-xs text-ink-faint">Refunded</p></Card>
+        <Card><p className="text-2xl font-bold">{payments ? `${payments.failed + payments.expired}` : '—'}</p><p className="text-xs text-ink-faint">Failed + expired payments</p></Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

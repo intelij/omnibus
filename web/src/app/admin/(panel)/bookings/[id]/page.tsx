@@ -53,7 +53,7 @@ export default function BookingDetailPage() {
             <Field k="Payment" v={booking.payment ? `${booking.payment.method} — ${booking.payment.status}` : 'none'} />
             <Field k="Created" v={new Date(booking.created_at).toLocaleString()} />
           </dl>
-          <div className="mt-5 flex gap-2 border-t border-slate-100 pt-4">
+          <div className="mt-5 flex gap-2 border-t border-border pt-4">
             {['held', 'pending_payment', 'confirmed'].includes(booking.status) && (
               <Button variant="danger" onClick={() => cancel.mutate(prompt('Cancellation reason?') ?? 'Operator action')} disabled={cancel.isPending}>
                 Cancel booking
@@ -70,14 +70,14 @@ export default function BookingDetailPage() {
           <ul className="space-y-3 text-sm">
             {events.map((e) => (
               <li key={e.id} className="flex gap-3">
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal-600" aria-hidden />
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand" aria-hidden />
                 <div>
                   <p className="font-medium">{e.event.replace('_', ' ')}</p>
-                  <p className="text-xs text-slate-400">{new Date(e.created_at).toLocaleString()}{e.actor_type ? ` · ${e.actor_type}` : ''}</p>
+                  <p className="text-xs text-ink-faint">{new Date(e.created_at).toLocaleString()}{e.actor_type ? ` · ${e.actor_type}` : ''}</p>
                 </div>
               </li>
             ))}
-            {events.length === 0 && <li className="text-slate-400">No events recorded.</li>}
+            {events.length === 0 && <li className="text-ink-faint">No events recorded.</li>}
           </ul>
         </Card>
       </div>
@@ -88,7 +88,7 @@ export default function BookingDetailPage() {
 function Field({ k, v }: { k: string; v?: string | null }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-slate-400">{k}</dt>
+      <dt className="text-xs uppercase tracking-wide text-ink-faint">{k}</dt>
       <dd className="mt-0.5 font-medium">{v ?? '—'}</dd>
     </div>
   );

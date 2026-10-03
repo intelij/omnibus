@@ -2,25 +2,44 @@
 
 import { SeatCell } from '@/lib/api';
 import { clsx } from 'clsx';
-import { DoorOpen, MonitorX, Toilet } from 'lucide-react';
+import { Accessibility, Check, DoorOpen, Lock, MonitorX, Star, Toilet, X } from 'lucide-react';
 
-const NON_SEAT: Record<string, React.ReactNode> = {
-  driver: <MonitorX className="h-4 w-4" />,
-  toilet: <Toilet className="h-4 w-4" />,
-  stairs: <DoorOpen className="h-4 w-4" />,
-  exit: <DoorOpen className="h-4 w-4" />,
-  kitchen: null,
+const NON_SEAT: Record<string, { icon: React.ReactNode; label: string }> = {
+  driver: { icon: <MonitorX className="h-4 w-4" />, label: 'Driver' },
+  toilet: { icon: <Toilet className="h-4 w-4" />, label: 'Toilet' },
+  stairs: { icon: <DoorOpen className="h-4 w-4" />, label: 'Stairs' },
+  exit: { icon: <DoorOpen className="h-4 w-4" />, label: 'Exit' },
+  kitchen: { icon: null, label: 'Galley' },
 };
+
+function stateLabel(seat: SeatCell): string {
+  const parts = [`Seat ${seat.label}`, seat.state];
+  if (seat.type === 'vip') parts.push('VIP');
+  if (seat.type === 'premium') parts.push('Premium');
+  if (seat.type === 'disabled_access') parts.push('Accessible');
+  if (seat.price_modifier > 0) parts.push(`+${seat.price_modifier}`);
+  return parts.join(', ');
+}
+
+function SeatIcon({ seat, selected }: { seat: SeatCell; selected: boolean }) {
+  if (selected) return <Check className="h-4 w-4" aria-hidden />;
+  if (seat.type === 'disabled_access') return <Accessibility className="h-3.5 w-3.5" aria-hidden />;
+  if (seat.state === 'held') return <Lock className="h-3.5 w-3.5" aria-hidden />;
+  if (seat.state === 'booked') return <X className="h-3.5 w-3.5" aria-hidden />;
+  return <>{seat.label}</>;
+}
 
 export function SeatMap({
   seats,
   selected,
   onToggle,
+  readonly = false,
 }: {
   seats: SeatCell[];
   selected: number[];
   onToggle: (seat: SeatCell) => void;
   maxSeats?: number;
+  readonly?: boolean;
 }) {
   const decks = [...new Set(seats.map((s) => s.deck))].sort();
 
@@ -33,11 +52,11 @@ export function SeatMap({
 
         return (
           <div key={deck}>
-            {decks.length > 1 && <h3 className="mb-3 text-sm font-semibold text-slate-600">{deck === 1 ? 'Lower deck' : 'Upper deck'}</h3>}
+            {decks.length > 1 && <h3 className="mb-3 text-sm font-semibold text-ink-muted">{deck === 1 ? 'Lower deck' : 'Upper deck'}</h3>}
             <div
               role="grid"
-              aria-label="Seat map"
-              className="inline-grid gap-1.5 rounded-xl bg-slate-100 p-4"
+              aria-label={readonly ? 'Seat occupancy' : 'Select seats'}
+              className="inline-grid gap-1.5 rounded-xl bg-surface-muted p-4"
               style={{ gridTemplateColumns: `repeat(${cols}, 2.5rem)` }}
             >
               {rows.flatMap((row) =>
@@ -46,12 +65,13 @@ export function SeatMap({
                   if (!seat) return <div key={`${row}-${col}`} className="h-10" />;
 
                   const isSelected = selected.includes(seat.id);
-                  const selectable = seat.state === 'available';
+                  const selectable = seat.state === 'available' && !readonly;
 
                   if (seat.type in NON_SEAT) {
+                    const meta = NON_SEAT[seat.type];
                     return (
-                      <div key={seat.id} className="flex h-10 items-center justify-center rounded bg-slate-200 text-slate-400" aria-hidden>
-                        {NON_SEAT[seat.type]}
+                      <div key={seat.id} className="flex h-10 items-center justify-center rounded bg-slate-200 text-ink-faint" title={meta.label} aria-label={meta.label} role="img">
+                        {meta.icon}
                       </div>
                     );
                   }
@@ -61,23 +81,30 @@ export function SeatMap({
                       key={seat.id}
                       type="button"
                       role="gridcell"
-                      aria-label={`Seat ${seat.label}${selectable ? '' : ` (${seat.state})`}`}
+                      aria-label={stateLabel(seat)}
                       aria-selected={isSelected}
+                      aria-disabled={!selectable && !isSelected}
                       disabled={!selectable && !isSelected}
-                      title={`Seat ${seat.label} — ${seat.type}${seat.price_modifier > 0 ? ` (+${seat.price_modifier})` : ''}`}
-                      onClick={() => selectable || isSelected ? onToggle(seat) : undefined}
+                      title={stateLabel(seat)}
+                      onClick={() => (selectable || isSelected) && onToggle(seat)}
                       className={clsx(
-                        'flex h-10 items-center justify-center rounded-md text-xs font-semibold transition-all',
-                        'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-teal-600',
-                        isSelected && 'bg-teal-600 text-white ring-2 ring-teal-700',
-                        !isSelected && selectable && 'bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-2 hover:ring-teal-500',
-                        !isSelected && !selectable && 'cursor-not-allowed bg-slate-300 text-slate-400',
-                        seat.type === 'vip' && !isSelected && selectable && 'ring-2 ring-amber-400',
-                        seat.type === 'premium' && !isSelected && selectable && 'ring-2 ring-sky-400',
-                        seat.type === 'disabled_access' && !isSelected && selectable && 'ring-2 ring-purple-400',
+                        'relative flex h-10 items-center justify-center rounded-md text-xs font-semibold transition-all',
+                        'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand',
+                        isSelected && 'bg-brand text-white ring-2 ring-brand-hover',
+                        !isSelected && selectable && 'bg-surface text-ink-secondary ring-1 ring-border-strong hover:ring-2 hover:ring-brand',
+                        !isSelected && !selectable && 'cursor-not-allowed',
+                        !isSelected && seat.state === 'booked' && 'seat-occupied bg-slate-300 text-ink-faint',
+                        !isSelected && seat.state === 'held' && 'seat-held border-2 border-amber-400 bg-amber-50 text-amber-800',
+                        !isSelected && seat.state === 'unavailable' && 'bg-slate-200 text-ink-faint',
+                        seat.type === 'vip' && !isSelected && selectable && 'ring-2 ring-amber-500',
+                        seat.type === 'premium' && !isSelected && selectable && 'ring-2 ring-sky-500',
+                        seat.type === 'disabled_access' && !isSelected && selectable && 'ring-2 ring-purple-500',
                       )}
                     >
-                      {seat.label}
+                      {seat.type === 'vip' && !isSelected && (
+                        <Star className="absolute -right-1 -top-1 h-3 w-3 fill-amber-400 text-amber-500" aria-hidden />
+                      )}
+                      <SeatIcon seat={seat} selected={isSelected} />
                     </button>
                   );
                 }),
@@ -87,12 +114,14 @@ export function SeatMap({
         );
       })}
 
-      <div className="flex flex-wrap gap-4 text-xs text-slate-600" aria-label="Legend">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-white ring-1 ring-slate-300" /> Available</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-teal-600" /> Selected</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-slate-300" /> Taken</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-white ring-2 ring-amber-400" /> VIP</span>
-      </div>
+      <ul className="flex flex-wrap gap-4 text-xs text-ink-muted" aria-label="Legend">
+        <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-surface ring-1 ring-border-strong" /> Available</li>
+        <li className="flex items-center gap-1.5"><span className="flex h-3 w-3 items-center justify-center rounded bg-brand text-white"><Check className="h-2 w-2" /></span> Selected</li>
+        <li className="flex items-center gap-1.5"><span className="seat-occupied flex h-3 w-3 items-center justify-center rounded bg-slate-300"><X className="h-2 w-2 text-ink-faint" /></span> Taken</li>
+        <li className="flex items-center gap-1.5"><span className="seat-held h-3 w-3 rounded border-2 border-amber-400 bg-amber-50" /> Held</li>
+        <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-surface ring-2 ring-amber-500" /> VIP</li>
+        <li className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-surface ring-2 ring-purple-500" /> Accessible</li>
+      </ul>
     </div>
   );
 }

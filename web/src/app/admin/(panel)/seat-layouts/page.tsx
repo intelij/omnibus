@@ -64,7 +64,7 @@ export default function SeatLayoutsPage() {
             </div>
           </div>
           <SeatDesigner rows={rows} cols={cols} cells={cells} onChange={setCells} />
-          <p className="mt-3 text-xs text-slate-500">{cells.filter((c) => ['standard', 'premium', 'vip', 'disabled_access'].includes(c.type)).length} bookable seats · labels auto-assigned on save</p>
+          <p className="mt-3 text-xs text-ink-faint">{cells.filter((c) => ['standard', 'premium', 'vip', 'disabled_access'].includes(c.type)).length} bookable seats · labels auto-assigned on save</p>
           {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         </Card>
       )}
@@ -78,7 +78,7 @@ export default function SeatLayoutsPage() {
             l.seats_count ?? '—',
             <Badge key="s" tone={statusTone(l.status)}>{l.status}</Badge>,
             <div key="a" className="flex gap-3">
-              {l.status === 'draft' && <button className="text-sm font-medium text-teal-700 hover:underline" onClick={() => publish.mutate(l.id)}>Publish</button>}
+              {l.status === 'draft' && <button className="text-sm font-medium text-brand hover:underline" onClick={() => publish.mutate(l.id)}>Publish</button>}
             </div>,
           ])}
         />

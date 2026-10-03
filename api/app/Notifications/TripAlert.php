@@ -13,6 +13,13 @@ class TripAlert extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    public int $tries = 3;
+
+    public function backoff(): array
+    {
+        return [30, 120, 600];
+    }
+
     public function __construct(public Trip $trip, public string $subject, public string $body) {}
 
     public function via(object $notifiable): array

@@ -62,7 +62,7 @@ export default function SchedulesPage() {
             s.departure_time,
             <span key="d" className="text-xs">{s.days_of_week?.map((d) => DAYS[d - 1]).join(' ')}</span>,
             <Badge key="s" tone={statusTone(s.status)}>{s.status}</Badge>,
-            <button key="a" className="flex items-center gap-1 text-sm text-teal-700 hover:underline" onClick={() => generate.mutate(s.id)}>
+            <button key="a" className="flex items-center gap-1 text-sm text-brand hover:underline" onClick={() => generate.mutate(s.id)}>
               <CalendarPlus className="h-3.5 w-3.5" /> Generate trips
             </button>,
           ])}
@@ -87,12 +87,12 @@ export default function SchedulesPage() {
             <Input label="End date (optional)" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
           </div>
           <div>
-            <span className="mb-1 block text-sm font-medium text-slate-700">Runs on</span>
+            <span className="mb-1 block text-sm font-medium text-ink-secondary">Runs on</span>
             <div className="flex gap-1.5">
               {DAYS.map((d, i) => (
                 <button key={d} type="button" onClick={() => toggleDay(i + 1)}
                   aria-pressed={form.days.includes(i + 1)}
-                  className={`h-9 w-9 rounded-lg text-xs font-semibold ${form.days.includes(i + 1) ? 'bg-teal-700 text-white' : 'bg-white ring-1 ring-slate-300'}`}>
+                  className={`h-9 w-9 rounded-lg text-xs font-semibold ${form.days.includes(i + 1) ? 'bg-brand text-white' : 'bg-surface ring-1 ring-border-strong'}`}>
                   {d}
                 </button>
               ))}

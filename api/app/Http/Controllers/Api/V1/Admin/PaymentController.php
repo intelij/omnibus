@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\PaymentResource;
 use App\Models\Payment;
+use App\Models\PaymentDiscrepancy;
 use App\Services\PaymentService;
+use App\Support\Audit;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -64,7 +66,34 @@ class PaymentController extends Controller
             'pending' => Payment::where('status', 'pending')->with('booking:id,booking_reference')->orderBy('created_at')->get(),
             'processing' => Payment::where('status', 'processing')->with('booking:id,booking_reference')->orderBy('created_at')->get(),
             'failed_today' => Payment::where('status', 'failed')->whereDate('created_at', today())->count(),
+            'discrepancies' => PaymentDiscrepancy::where('status', 'open')
+                ->with('payment:id,booking_id,method,amount,currency,status')
+                ->orderBy('created_at')
+                ->get(),
         ]);
+    }
+
+    /** Finance resolution of a payment discrepancy (amount mismatch, late payment). */
+    public function resolveDiscrepancy(PaymentDiscrepancy $discrepancy, Request $request)
+    {
+        $this->authorize('reconcile', Payment::class);
+
+        $data = $request->validate([
+            'notes' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $discrepancy->update([
+            'status' => 'resolved',
+            'notes' => $data['notes'],
+            'resolved_by' => $request->user()->id,
+            'resolved_at' => now(),
+        ]);
+
+        Audit::record('payment.discrepancy_resolved', $discrepancy->payment, [
+            'discrepancy_id' => $discrepancy->id, 'notes' => $data['notes'],
+        ], $request->user()->id);
+
+        return response()->json($discrepancy);
     }
 
     public function export(Request $request)

@@ -18,6 +18,8 @@ class PaymentTransaction extends Model
 
     public const TYPE_STATUS_CHECK = 'status_check';
 
+    public const TYPE_STATUS_POLL = 'status_poll';
+
     public const TYPE_REFUND = 'refund';
 
     public const TYPE_CONFIRMATION = 'confirmation';

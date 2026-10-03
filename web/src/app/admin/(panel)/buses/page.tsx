@@ -80,7 +80,7 @@ export default function BusesPage() {
             b.capacity,
             <Badge key="s" tone={statusTone(b.status)}>{b.status}</Badge>,
             <div key="a" className="flex gap-3">
-              <button className="text-sm text-teal-700 hover:underline" onClick={() => openForm(b)}>Edit</button>
+              <button className="text-sm text-brand hover:underline" onClick={() => openForm(b)}>Edit</button>
               {b.status !== 'retired' && <button className="text-sm text-red-600 hover:underline" onClick={() => retire.mutate(b.id)}>Retire</button>}
             </div>,
           ])}

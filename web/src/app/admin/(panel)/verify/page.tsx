@@ -28,9 +28,9 @@ export default function VerifyPage() {
     <>
       <PageHeader title="Verify ticket" subtitle="Paste a scanned QR payload to check or board a passenger" />
       <Card className="max-w-xl">
-        <label className="block text-sm font-medium text-slate-700">QR payload</label>
+        <label className="block text-sm font-medium text-ink-secondary">QR payload</label>
         <textarea
-          className="mt-1 h-24 w-full rounded-lg border-0 px-3 py-2 font-mono text-xs ring-1 ring-slate-300 focus:ring-2 focus:ring-teal-600"
+          className="mt-1 h-24 w-full rounded-lg border-0 px-3 py-2 font-mono text-xs ring-1 ring-border-strong focus:ring-2 focus:ring-brand"
           placeholder='{"id":12,"token":"…"}'
           value={qr}
           onChange={(e) => setQr(e.target.value)}
@@ -50,12 +50,12 @@ export default function VerifyPage() {
             <Badge tone={result.valid ? 'green' : result.already_used ? 'yellow' : 'red'}>{result.ticket.status}</Badge>
           </div>
           <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <div><dt className="text-xs text-slate-400">Passenger</dt><dd className="font-medium">{result.ticket.passenger_name}</dd></div>
-            <div><dt className="text-xs text-slate-400">Seat</dt><dd className="font-medium">{result.ticket.seat_label}</dd></div>
-            <div><dt className="text-xs text-slate-400">Booking</dt><dd className="font-medium">{result.booking.reference}</dd></div>
-            <div><dt className="text-xs text-slate-400">Trip</dt><dd className="font-medium">{result.booking.trip}</dd></div>
-            <div><dt className="text-xs text-slate-400">Departure</dt><dd className="font-medium">{new Date(result.booking.departure_at).toLocaleString()}</dd></div>
-            <div><dt className="text-xs text-slate-400">Payment</dt><dd className="font-medium">{result.booking.payment_status ?? '—'}</dd></div>
+            <div><dt className="text-xs text-ink-faint">Passenger</dt><dd className="font-medium">{result.ticket.passenger_name}</dd></div>
+            <div><dt className="text-xs text-ink-faint">Seat</dt><dd className="font-medium">{result.ticket.seat_label}</dd></div>
+            <div><dt className="text-xs text-ink-faint">Booking</dt><dd className="font-medium">{result.booking.reference}</dd></div>
+            <div><dt className="text-xs text-ink-faint">Trip</dt><dd className="font-medium">{result.booking.trip}</dd></div>
+            <div><dt className="text-xs text-ink-faint">Departure</dt><dd className="font-medium">{new Date(result.booking.departure_at).toLocaleString()}</dd></div>
+            <div><dt className="text-xs text-ink-faint">Payment</dt><dd className="font-medium">{result.booking.payment_status ?? '—'}</dd></div>
           </dl>
         </Card>
       )}
